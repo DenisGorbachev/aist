@@ -5,8 +5,8 @@ resolver = "3"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.93.1"
-homepage = "https://github.com/DenisGorbachev/rust-private-lib-template"
-repository = "https://github.com/DenisGorbachev/rust-private-lib-template"
+homepage = "https://github.com/DenisGorbachev/aist"
+repository = "https://github.com/DenisGorbachev/aist"
 keywords = []
 categories = []
 exclude = [
@@ -30,8 +30,8 @@ exclude = [
 ]
 
 [workspace.metadata.details]
-name = "rust-private-lib-template"
-title = "Rust private template"
+name = "aist"
+title = ""
 readme = { generate = false }
 
 [workspace.lints.rust]
@@ -45,11 +45,10 @@ absolute_paths = "deny"
 arithmetic_side_effects = "deny"
 
 [package]
-name = "rust-private-lib-template"
+name = "aist"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-description = "A template for creating Rust private repositories."
 homepage.workspace = true
 repository.workspace = true
 keywords.workspace = true
@@ -57,7 +56,7 @@ categories.workspace = true
 exclude.workspace = true
 
 [package.metadata.details]
-title = "Rust private template"
+title = ""
 
 [lints]
 workspace = true
