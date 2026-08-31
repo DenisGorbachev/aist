@@ -6,7 +6,7 @@ use ra_ap_project_model::{CargoConfig, CargoFeatures, RustLibSource};
 use std::path::Path;
 use thiserror::Error;
 
-pub fn list_rust_project_types(project_dir: &Path) -> Result<RustProjectTypes, ListRustProjectTypesError> {
+pub fn list_rust_project_types(project_root: &Path) -> Result<RustProjectTypes, ListRustProjectTypesError> {
     use ListRustProjectTypesError::*;
     let load_config = LoadCargoConfig {
         load_out_dirs_from_check: true,
@@ -23,24 +23,24 @@ pub fn list_rust_project_types(project_dir: &Path) -> Result<RustProjectTypes, L
         ..CargoConfig::default()
     };
     let (db, vfs, proc_macro_client) = handle!(
-        load_workspace_at(project_dir, &cargo_config, &load_config, &|_| {}),
+        load_workspace_at(project_root, &cargo_config, &load_config, &|_| {}),
         LoadWorkspaceAtFailed,
-        project_dir: project_dir.to_path_buf()
+        project_root: project_root.to_path_buf()
     );
-    let proc_macro_client = handle_opt!(proc_macro_client, ProcMacroClientNotFound, project_dir: project_dir.to_path_buf());
+    let proc_macro_client = handle_opt!(proc_macro_client, ProcMacroClientNotFound, project_root: project_root.to_path_buf());
     let _proc_macro_client = proc_macro_client;
     let semantics = Semantics::new(&db);
     let source_paths = rust_source_paths(&vfs);
-    let declarations = handle!(collect_rust_type_declarations(&db, &semantics, &source_paths), CollectRustTypeDeclarationsFailed, project_dir: project_dir.to_path_buf());
+    let declarations = handle!(collect_rust_type_declarations(&db, &semantics, &source_paths), CollectRustTypeDeclarationsFailed, project_root: project_root.to_path_buf());
     Ok(build_rust_project_types(declarations))
 }
 
 #[derive(Error, Debug)]
 pub enum ListRustProjectTypesError {
-    #[error("failed to load Rust project '{project_dir}' into rust-analyzer")]
-    LoadWorkspaceAtFailed { source: anyhow::Error, project_dir: PathBufDisplay },
-    #[error("rust-analyzer's proc-macro server was not found while loading project '{project_dir}'")]
-    ProcMacroClientNotFound { project_dir: PathBufDisplay },
-    #[error("failed to collect macro-expanded Rust type declarations from project '{project_dir}'")]
-    CollectRustTypeDeclarationsFailed { source: CollectRustTypeDeclarationsError, project_dir: PathBufDisplay },
+    #[error("failed to load Rust project '{project_root}' into rust-analyzer")]
+    LoadWorkspaceAtFailed { source: anyhow::Error, project_root: PathBufDisplay },
+    #[error("rust-analyzer's proc-macro server was not found while loading project '{project_root}'")]
+    ProcMacroClientNotFound { project_root: PathBufDisplay },
+    #[error("failed to collect macro-expanded Rust type declarations from project '{project_root}'")]
+    CollectRustTypeDeclarationsFailed { source: CollectRustTypeDeclarationsError, project_root: PathBufDisplay },
 }

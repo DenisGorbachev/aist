@@ -2375,7 +2375,6 @@ age = { type = "age", recipients = [
 ```toml
 [workspace]
 resolver = "3"
-members = ["packages/aist-rust-analyzer"]
 
 [workspace.package]
 version = "0.1.0"
@@ -2449,60 +2448,16 @@ stub-macro = { version = "0.3.1" }
 subtype = { git = "https://github.com/DenisGorbachev/subtype" }
 clap = { version = "4.6.6", features = ["derive", "env"] }
 serde = { version = "1.0.229", features = ["derive"] }
-aist-rust-analyzer = { version = "0.1.0", path = "packages/aist-rust-analyzer" }
 thiserror = "2"
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
 save-load = { git = "https://github.com/DenisGorbachev/save-load", version = "0.1.0", features = ["clap", "serde_json", "serde_yaml", "toml"] }
-```
-
-#### packages/aist-rust-analyzer/Cargo.toml
-
-```toml
-[package]
-name = "aist-rust-analyzer"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-homepage.workspace = true
-repository.workspace = true
-keywords.workspace = true
-categories.workspace = true
-exclude.workspace = true
-
-[package.metadata.details]
-title = ""
-
-[lints]
-workspace = true
-
-[dependencies]
 anyhow = "1"
-clap = { version = "4.6.6", features = ["derive", "env"] }
-errgonomic = { git = "https://github.com/DenisGorbachev/errgonomic", version = "0.5.2" }
 ra_ap_hir = "0.0.349"
 ra_ap_ide_db = "0.0.349"
 ra_ap_load-cargo = "0.0.349"
 ra_ap_project_model = "0.0.349"
 ra_ap_syntax = "0.0.349"
 ra_ap_vfs = "0.0.349"
-save-load = { git = "https://github.com/DenisGorbachev/save-load", version = "0.1.0", features = ["serde_json", "serde_yaml", "toml"] }
-serde = { version = "1", features = ["derive"] }
-thiserror = "2"
-```
-
-#### packages/aist-rust-analyzer/src/lib.rs
-
-```rust
-//! Rust project inspection powered by rust-analyzer's macro-expanded HIR.
-
-mod functions;
-pub use functions::*;
-
-mod types;
-pub use types::*;
-
-mod list_types_aist_command;
-pub use list_types_aist_command::*;
 ```
 
 #### src/lib.rs
@@ -2510,23 +2465,27 @@ pub use list_types_aist_command::*;
 ```rust
 //! Tools for inspecting and transforming source projects.
 
-pub use aist_rust_analyzer::*;
+mod functions;
+pub use functions::*;
 
-mod aist_command;
-pub use aist_command::*;
+mod types;
+pub use types::*;
+
+mod command;
+pub use command::*;
 ```
 
 #### src/main.rs
 
 ```rust
-use aist::AistCommand;
+use aist::Command;
 use clap::Parser;
 use errgonomic::exit_result;
 use std::process::ExitCode;
 
 #[tokio::main]
 async fn main() -> ExitCode {
-    let args = AistCommand::parse();
+    let args = Command::parse();
     let result = args.run().await;
     exit_result(result)
 }
@@ -2534,6 +2493,6 @@ async fn main() -> ExitCode {
 #[test]
 fn verify_cli() {
     use clap::CommandFactory;
-    AistCommand::command().debug_assert();
+    Command::command().debug_assert();
 }
 ```

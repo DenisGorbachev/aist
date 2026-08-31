@@ -6,30 +6,13 @@ version = 4
 name = "aist"
 version = "0.1.0"
 dependencies = [
- "aist-rust-analyzer",
+ "anyhow",
  "clap",
  "derive-getters",
  "derive-new",
  "derive_more 2.1.1",
  "errgonomic",
  "itertools",
- "save-load",
- "serde",
- "standard-traits",
- "strum 0.28.0",
- "stub-macro",
- "subtype",
- "thiserror",
- "tokio",
-]
-
-[[package]]
-name = "aist-rust-analyzer"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "errgonomic",
  "ra_ap_hir",
  "ra_ap_ide_db",
  "ra_ap_load-cargo",
@@ -38,7 +21,12 @@ dependencies = [
  "ra_ap_vfs",
  "save-load",
  "serde",
+ "standard-traits",
+ "strum 0.28.0",
+ "stub-macro",
+ "subtype",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]

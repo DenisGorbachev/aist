@@ -1,11 +1,11 @@
-use aist::AistCommand;
+use aist::Command;
 use clap::Parser;
 use errgonomic::exit_result;
 use std::process::ExitCode;
 
 #[tokio::main]
 async fn main() -> ExitCode {
-    let args = AistCommand::parse();
+    let args = Command::parse();
     let result = args.run().await;
     exit_result(result)
 }
@@ -13,5 +13,5 @@ async fn main() -> ExitCode {
 #[test]
 fn verify_cli() {
     use clap::CommandFactory;
-    AistCommand::command().debug_assert();
+    Command::command().debug_assert();
 }

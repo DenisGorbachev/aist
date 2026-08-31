@@ -1,6 +1,10 @@
 //! Tools for inspecting and transforming source projects.
 
-pub use aist_rust_analyzer::*;
+mod functions;
+pub use functions::*;
 
-mod aist_command;
-pub use aist_command::*;
+mod types;
+pub use types::*;
+
+mod command;
+pub use command::*;
