@@ -27,3 +27,4 @@
 - Must have methods:
   - `run`
     - Must list the types in the project
+    - Must include types produced by declarative and procedural macro expansion when rust-analyzer can expand the macro

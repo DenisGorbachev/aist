@@ -738,6 +738,7 @@ Proxy command example:
 - Must have methods:
   - `run`
     - Must list the types in the project
+    - Must include types produced by declarative and procedural macro expansion when rust-analyzer can expand the macro
 
 ### Error handling
 
@@ -2370,11 +2371,12 @@ age = { type = "age", recipients = [
 ```toml
 [workspace]
 resolver = "3"
+members = ["packages/aist-rust-analyzer"]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.93.1"
+rust-version = "1.95"
 homepage = "https://github.com/DenisGorbachev/aist"
 repository = "https://github.com/DenisGorbachev/aist"
 keywords = []
@@ -2443,10 +2445,112 @@ stub-macro = { version = "0.3.1" }
 subtype = { git = "https://github.com/DenisGorbachev/subtype" }
 clap = { version = "4.6.6", features = ["derive", "env"] }
 serde = { version = "1.0.229", features = ["derive"] }
+aist-rust-analyzer = { version = "0.1.0", path = "packages/aist-rust-analyzer" }
+thiserror = "2"
+tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
+```
+
+#### packages/aist-rust-analyzer/Cargo.toml
+
+```toml
+[package]
+name = "aist-rust-analyzer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+homepage.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+exclude.workspace = true
+
+[package.metadata.details]
+title = ""
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4.6.6", features = ["derive", "env"] }
+errgonomic = { git = "https://github.com/DenisGorbachev/errgonomic", version = "0.5.2" }
+ra_ap_hir = "0.0.349"
+ra_ap_hir_def = "0.0.349"
+ra_ap_ide_db = "0.0.349"
+ra_ap_load-cargo = "0.0.349"
+ra_ap_project_model = "0.0.349"
+ra_ap_syntax = "0.0.349"
+ra_ap_vfs = "0.0.349"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+```
+
+#### packages/aist-rust-analyzer/src/lib.rs
+
+```rust
+//! Rust project inspection powered by rust-analyzer's macro-expanded HIR.
+
+mod macros;
+pub(crate) use macros::*;
+
+mod functions;
+pub use functions::*;
+
+mod traits;
+pub use traits::*;
+
+mod types;
+pub use types::*;
+
+mod list_types_aist_command_v1;
+pub use list_types_aist_command_v1::*;
+
+mod list_types_aist_command_v2;
+pub use list_types_aist_command_v2::*;
+
+mod list_types_aist_command_v3;
+pub use list_types_aist_command_v3::*;
+
+mod list_types_aist_command_v4;
+pub use list_types_aist_command_v4::*;
+
+mod list_types_aist_command_v5;
+pub use list_types_aist_command_v5::*;
+
+mod list_types_aist_command_v6;
+pub use list_types_aist_command_v6::*;
 ```
 
 #### src/lib.rs
 
 ```rust
-//! This is a module-level comment for a Rust lib
+//! Tools for inspecting and transforming source projects.
+
+pub use aist_rust_analyzer::*;
+
+mod aist_command;
+pub use aist_command::*;
+```
+
+#### src/main.rs
+
+```rust
+use aist::AistCommand;
+use clap::Parser;
+use errgonomic::exit_result;
+use std::process::ExitCode;
+
+#[tokio::main]
+async fn main() -> ExitCode {
+    let args = AistCommand::parse();
+    let result = args.run().await;
+    exit_result(result)
+}
+
+#[test]
+fn verify_cli() {
+    use clap::CommandFactory;
+    AistCommand::command().debug_assert();
+}
 ```
