@@ -717,6 +717,7 @@ Proxy command example:
   - [aist-rust-analyzer](#aist-rust-analyzer)
 - Must contain dependencies:
   - `clap`
+  - `save-load`
 
 #### aist-rust-analyzer
 
@@ -724,11 +725,13 @@ Proxy command example:
   - [ListTypesAistCommand](#struct-listtypesaistcommand)
 - Must have dependencies:
   - Any rust-analyzer crates
+  - `save-load`
 
 ##### struct AistCommand
 
 - Must have fields:
   - `project_dir: PathBuf` (short = 'p')
+  - `output_format: Format` (`default_value_t = Format::Yaml`)
 - Must have methods:
   - `run`
     - Should create the vars that would be passed to the `run` methods of subcommands
@@ -739,6 +742,7 @@ Proxy command example:
   - `run`
     - Must list the types in the project
     - Must include types produced by declarative and procedural macro expansion when rust-analyzer can expand the macro
+    - Must serialize the type listing using `output_format`
 
 ### Error handling
 
@@ -2448,6 +2452,7 @@ serde = { version = "1.0.229", features = ["derive"] }
 aist-rust-analyzer = { version = "0.1.0", path = "packages/aist-rust-analyzer" }
 thiserror = "2"
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
+save-load = { git = "https://github.com/DenisGorbachev/save-load", version = "0.1.0", features = ["clap", "serde_json", "serde_yaml", "toml"] }
 ```
 
 #### packages/aist-rust-analyzer/Cargo.toml
@@ -2480,8 +2485,8 @@ ra_ap_load-cargo = "0.0.349"
 ra_ap_project_model = "0.0.349"
 ra_ap_syntax = "0.0.349"
 ra_ap_vfs = "0.0.349"
+save-load = { git = "https://github.com/DenisGorbachev/save-load", version = "0.1.0", features = ["serde_json", "serde_yaml", "toml"] }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
 thiserror = "2"
 ```
 

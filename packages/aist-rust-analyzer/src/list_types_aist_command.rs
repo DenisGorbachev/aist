@@ -1,6 +1,7 @@
 use crate::{ListRustProjectTypesError, WriteRustProjectTypesError, list_rust_project_types, write_rust_project_types};
 use clap::Parser;
 use errgonomic::handle;
+use save_load::format::Format;
 use serde::{Deserialize, Serialize};
 use std::io::stdout;
 use std::path::PathBuf;
@@ -13,13 +14,13 @@ use thiserror::Error;
 pub struct ListTypesAistCommand;
 
 impl ListTypesAistCommand {
-    pub async fn run(self, project_dir: PathBuf) -> Result<ExitCode, ListTypesAistCommandRunError> {
+    pub async fn run(self, project_dir: PathBuf, output_format: Format) -> Result<ExitCode, ListTypesAistCommandRunError> {
         use ListTypesAistCommandRunError::*;
         let Self = self;
         let project_types = handle!(list_rust_project_types(&project_dir), ListRustProjectTypesFailed);
         let stdout = stdout();
         let mut stdout = stdout.lock();
-        handle!(write_rust_project_types(&mut stdout, project_types), WriteRustProjectTypesFailed);
+        handle!(write_rust_project_types(&mut stdout, project_types, output_format), WriteRustProjectTypesFailed);
         Ok(ExitCode::SUCCESS)
     }
 }

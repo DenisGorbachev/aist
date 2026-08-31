@@ -2,6 +2,7 @@ use crate::{ListTypesAistCommand, ListTypesAistCommandRunError};
 use AistSubcommand::*;
 use clap::{Parser, Subcommand};
 use errgonomic::map_err;
+use save_load::format::Format;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -12,6 +13,8 @@ use thiserror::Error;
 pub struct AistCommand {
     #[arg(short = 'p', long)]
     pub project_dir: PathBuf,
+    #[arg(long, value_enum, default_value_t = Format::Yaml)]
+    pub output_format: Format,
     #[command(subcommand)]
     pub subcommand: AistSubcommand,
 }
@@ -26,10 +29,11 @@ impl AistCommand {
         use AistCommandRunError::*;
         let Self {
             project_dir,
+            output_format,
             subcommand,
         } = self;
         match subcommand {
-            ListTypes(command) => map_err!(command.run(project_dir).await, ListTypesAistCommandRunFailed),
+            ListTypes(command) => map_err!(command.run(project_dir, output_format).await, ListTypesAistCommandRunFailed),
         }
     }
 }

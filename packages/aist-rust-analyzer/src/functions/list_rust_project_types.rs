@@ -2,7 +2,7 @@ use crate::{CollectRustTypeDeclarationsError, RustProjectTypes, build_rust_proje
 use errgonomic::{PathBufDisplay, handle, handle_opt};
 use ra_ap_hir::Semantics;
 use ra_ap_load_cargo::{LoadCargoConfig, ProcMacroServerChoice, load_workspace_at};
-use ra_ap_project_model::{CargoConfig, RustLibSource};
+use ra_ap_project_model::{CargoConfig, CargoFeatures, RustLibSource};
 use std::path::Path;
 use thiserror::Error;
 
@@ -16,6 +16,9 @@ pub fn list_rust_project_types(project_dir: &Path) -> Result<RustProjectTypes, L
         proc_macro_processes: 1,
     };
     let cargo_config = CargoConfig {
+        all_targets: true,
+        features: CargoFeatures::All,
+        set_test: true,
         sysroot: Some(RustLibSource::Discover),
         ..CargoConfig::default()
     };
