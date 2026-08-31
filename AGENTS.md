@@ -532,12 +532,212 @@ Examples:
 
 A package that has a remote whose name contains `public` or `pre-public` and ends with `template`.
 
+### Guidelines for `serde`
+
+#### Requirements
+
+- Every input data type must derive `Serialize` and `Deserialize`
+- Every `Option`-wrapped field must have attributes:
+  - `#[serde(skip_serializing_if = "Option::is_none")]`
+- Every `OffsetDateTime` field must have attributes:
+  - `#[serde(with = "time::serde::rfc3339")]`
+- Every `Option<OffsetDateTime>` field must have attributes:
+  - `#[serde(with = "time::serde::rfc3339::option")]`
+
+#### Notes
+
+- It is recommended to use `serde_with` to reduce the code size by avoiding custom `Serialize`/`Deserialize` impls
+
 ### Guidelines for `subtype`
 
 - Define newtypes as ordinary structs with explicit `From` / `TryFrom` impls.
 - The macro calls that begin with `subtype` (for example, `subtype!` and `subtype_string!`) are legacy APIs that expand to newtypes.
   - Don't use them in new code because their checker and preprocessor concepts have been superseded by explicit conversion impls.
 - Use the `SerializeTransparent` derive for a refined newtype that must serialize identically to its inner field while using Serde's `try_from` container attribute for validated deserialization.
+
+### Guidelines for `clap`
+
+#### Requirements
+
+- For each enum in project:
+  - If enum has only unit variants and doesn't implement `Error`
+    - Then: it must derive `ValueEnum` with `#[value(rename_all = "kebab-case")]`
+- For each field in a type that derives `Parser`:
+  - If this field's type is local:
+    - Then: this type must implement `FromStr`
+      - Rationale: `clap` parses types that implement `FromStr` directly without `value_parser`
+
+### CLI guidelines
+
+#### Dependencies
+
+- `clap` (features: at least "derive", "env")
+- `tokio` (features: at least "macros", "rt", "rt-multi-thread")
+- `errgonomic`
+- `thiserror`
+
+#### File layout and required items
+
+##### File `src/main.rs`
+
+- Must define a `main` entrypoint
+- Must define a `verify_cli` test for the top-level command exactly as in the example below (with `debug_assert`)
+
+Example:
+
+```rust
+use clap::Parser;
+use errgonomic::exit_result;
+use my_crate_name::Command;
+use std::process::ExitCode;
+
+#[tokio::main]
+async fn main() -> ExitCode {
+    let args = Command::parse();
+    let result = args.run().await;
+    exit_result(result)
+}
+
+#[test]
+fn verify_cli() {
+    use clap::CommandFactory;
+    Command::command().debug_assert();
+}
+```
+
+##### File `src/command.rs`
+
+- Must define a [command-like struct](#command-like-struct) named `Command`
+  - Must have attributes:
+    - `#[command(author, version, about, propagate_version = true, flatten_help = true, disable_help_subcommand = true)]`
+- Must define a [subcommand-like enum](#subcommand-like-enum) named `Subcommand`
+
+Example:
+
+```rust
+use std::process::ExitCode;
+use Subcommand::*;
+use errgonomic::map_err;
+use thiserror::Error;
+
+#[derive(clap::Parser, Debug)]
+#[command(author, version, about, propagate_version = true, flatten_help = true, disable_help_subcommand = true)]
+pub struct Command {
+    #[command(subcommand)]
+    subcommand: Subcommand,
+}
+
+#[derive(clap::Subcommand, Clone, Debug)]
+pub enum Subcommand {
+    Print(PrintCommand),
+}
+
+impl Command {
+    pub async fn run(self) -> Result<ExitCode, CommandRunError> {
+        use CommandRunError::*;
+        let Self {
+            subcommand,
+        } = self;
+        match subcommand {
+            Print(command) => map_err!(command.run().await, PrintCommandRunFailed),
+        }
+    }
+}
+
+#[derive(Error, Debug)]
+pub enum CommandRunError {
+    #[error("failed to run print command")]
+    PrintCommandRunFailed { source: PrintCommandRunError },
+}
+
+mod print_command;
+
+pub use print_command::*;
+```
+
+#### Definitions
+
+##### Command-like struct
+
+A struct that contains fields for CLI arguments.
+
+- Must have a name that is a concatenation of all command names leading up to and including this command name, and ends with `Command` (see example above)
+- Must have at least the following attributes:
+  - `derive`
+    - Must contain at least:
+      - `Parser` (`use clap::Parser`)
+  - `command`
+    - Must contain at least:
+      - `flatten_help = true`
+- Must be attached to a parent module: if it's a top-level command: `src/lib.rs`, else: `src/command.rs`
+- For each field:
+  - If the field has a collection type (e.g. `Vec`), then it must have attribute `num_args = 1..`
+- May contain a `subcommand` field annotated with `#[command(subcommand)]`
+- Must have a `pub async fn run`
+  - Must return a `Result` with `ExitCode`
+  - If it contains a `subcommand` field: must match on `subcommand` and call `run` of each command
+
+Command example:
+
+- Name: `DbDownloadYcombinatorStartupsCommand`
+- File: `src/command/db_download_ycombinator_startups_command.rs` (attached to `src/command.rs`)
+- Shell command: `cargo run -- db download ycombinator-startups`
+
+##### Subcommand-like enum
+
+An enum that contains variants for CLI subcommands.
+
+- Must have a name that is a concatenation of all command names leading up to and including this command name, and ends with `Subcommand` (see example above)
+- Must have at least the following attributes:
+  - `derive`
+    - Must contain at least:
+      - `Subcommand` (`use clap::Subcommand`)
+- Must be located in the same file as its parent command struct
+- Each variant must be a tuple variant containing exactly one command
+
+Subcommand example:
+
+- Name: `DbDownloadSubcommand`
+- File: `src/cli/db_command/db_download_command.rs` (same file as its parent `DbDownloadCommand`)
+
+##### Proxy command-like struct
+
+A [command-like struct](#command-like-struct) that has a `subcommand` field and calls `run` on each subcommand.
+
+Proxy command example:
+
+- Name: `DbCommand`
+- File: `src/command/db_command.rs` (attached to `src/command.rs`)
+
+### aist
+
+#### Cargo.toml
+
+- Must contain workspace packages:
+  - [aist-rust-analyzer](#aist-rust-analyzer)
+- Must contain dependencies:
+  - `clap`
+
+#### aist-rust-analyzer
+
+- Must contain items:
+  - [ListTypesAistCommand](#struct-listtypesaistcommand)
+- Must have dependencies:
+  - Any rust-analyzer crates
+
+##### struct AistCommand
+
+- Must have fields:
+  - `project_dir: PathBuf` (short = 'p')
+- Must have methods:
+  - `run`
+    - Should create the vars that would be passed to the `run` methods of subcommands
+
+##### struct ListTypesAistCommand
+
+- Must have methods:
+  - `run`
+    - Must list the types in the project
 
 ### Error handling
 
@@ -1979,6 +2179,7 @@ cfg_if::cfg_if! {
 
 ```shell
 origin
+repoconf-rust-private-lib-template
 ```
 
 ### Project files
@@ -2156,8 +2357,8 @@ if_missing = "error"
 env = "exec"
 
 [providers]
-keychain = { type = "keychain", service = "rust-private-lib-template" }
-pass = { type = "password-store", prefix = "rust-private-lib-template/" }
+keychain = { type = "keychain", service = "aist" }
+pass = { type = "password-store", prefix = "aist/" }
 age = { type = "age", recipients = [
     "age1sf4r4amev2svqr6llwg8hgtz9n7p5qdh7hh0mavcshzfrmgfduksnq3hql",
     "age1605gsnxpe536sprwccyumq74veg0g80u55n8ggems0t8deau6qdsfnq3m3"
@@ -2174,8 +2375,8 @@ resolver = "3"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.93.1"
-homepage = "https://github.com/DenisGorbachev/rust-private-lib-template"
-repository = "https://github.com/DenisGorbachev/rust-private-lib-template"
+homepage = "https://github.com/DenisGorbachev/aist"
+repository = "https://github.com/DenisGorbachev/aist"
 keywords = []
 categories = []
 exclude = [
@@ -2199,8 +2400,8 @@ exclude = [
 ]
 
 [workspace.metadata.details]
-name = "rust-private-lib-template"
-title = "Rust private template"
+name = "aist"
+title = ""
 readme = { generate = false }
 
 [workspace.lints.rust]
@@ -2214,11 +2415,10 @@ absolute_paths = "deny"
 arithmetic_side_effects = "deny"
 
 [package]
-name = "rust-private-lib-template"
+name = "aist"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-description = "A template for creating Rust private repositories."
 homepage.workspace = true
 repository.workspace = true
 keywords.workspace = true
@@ -2226,7 +2426,7 @@ categories.workspace = true
 exclude.workspace = true
 
 [package.metadata.details]
-title = "Rust private template"
+title = ""
 
 [lints]
 workspace = true
@@ -2236,11 +2436,13 @@ derive-getters = { version = "0.5.0", features = ["auto_copy_getters"] }
 derive-new = "0.7.0"
 derive_more = { version = "2.1.1", features = ["full"] }
 errgonomic = { git = "https://github.com/DenisGorbachev/errgonomic" }
-itertools = "0.14.0"
+itertools = "0.15.0"
 standard-traits = { git = "https://github.com/DenisGorbachev/standard-traits" }
-strum = { version = "0.27.2", features = ["derive"] }
-stub-macro = { version = "0.2.1" }
+strum = { version = "0.28.0", features = ["derive"] }
+stub-macro = { version = "0.3.1" }
 subtype = { git = "https://github.com/DenisGorbachev/subtype" }
+clap = { version = "4.6.6", features = ["derive", "env"] }
+serde = { version = "1.0.229", features = ["derive"] }
 ```
 
 #### src/lib.rs
