@@ -30,7 +30,6 @@ dependencies = [
  "clap",
  "errgonomic",
  "ra_ap_hir",
- "ra_ap_hir_def",
  "ra_ap_ide_db",
  "ra_ap_load-cargo",
  "ra_ap_project_model",

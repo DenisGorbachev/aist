@@ -20,7 +20,6 @@ anyhow = "1"
 clap = { version = "4.6.6", features = ["derive", "env"] }
 errgonomic = { git = "https://github.com/DenisGorbachev/errgonomic", version = "0.5.2" }
 ra_ap_hir = "0.0.349"
-ra_ap_hir_def = "0.0.349"
 ra_ap_ide_db = "0.0.349"
 ra_ap_load-cargo = "0.0.349"
 ra_ap_project_model = "0.0.349"

@@ -1,4 +1,4 @@
-use crate::{CollectRustTypeDeclarationsError, RustProjectTypes, RustTypeDefinitionCollector, build_rust_project_types, collect_rust_type_declarations, rust_source_paths};
+use crate::{CollectRustTypeDeclarationsError, RustProjectTypes, build_rust_project_types, collect_rust_type_declarations, rust_source_paths};
 use errgonomic::{PathBufDisplay, handle, handle_opt};
 use ra_ap_hir::Semantics;
 use ra_ap_load_cargo::{LoadCargoConfig, ProcMacroServerChoice, load_workspace_at};
@@ -6,7 +6,7 @@ use ra_ap_project_model::{CargoConfig, RustLibSource};
 use std::path::Path;
 use thiserror::Error;
 
-pub fn list_rust_project_types<C: RustTypeDefinitionCollector>(project_dir: &Path) -> Result<RustProjectTypes, ListRustProjectTypesError> {
+pub fn list_rust_project_types(project_dir: &Path) -> Result<RustProjectTypes, ListRustProjectTypesError> {
     use ListRustProjectTypesError::*;
     let load_config = LoadCargoConfig {
         load_out_dirs_from_check: true,
@@ -28,7 +28,7 @@ pub fn list_rust_project_types<C: RustTypeDefinitionCollector>(project_dir: &Pat
     let _proc_macro_client = proc_macro_client;
     let semantics = Semantics::new(&db);
     let source_paths = rust_source_paths(&vfs);
-    let declarations = handle!(collect_rust_type_declarations::<C>(&db, &semantics, &source_paths), CollectRustTypeDeclarationsFailed, project_dir: project_dir.to_path_buf());
+    let declarations = handle!(collect_rust_type_declarations(&db, &semantics, &source_paths), CollectRustTypeDeclarationsFailed, project_dir: project_dir.to_path_buf());
     Ok(build_rust_project_types(declarations))
 }
 

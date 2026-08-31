@@ -1,4 +1,4 @@
-use crate::{ListTypesAistCommandV1, ListTypesAistCommandV1RunError, ListTypesAistCommandV2, ListTypesAistCommandV2RunError, ListTypesAistCommandV3, ListTypesAistCommandV3RunError, ListTypesAistCommandV4, ListTypesAistCommandV4RunError, ListTypesAistCommandV5, ListTypesAistCommandV5RunError, ListTypesAistCommandV6, ListTypesAistCommandV6RunError};
+use crate::{ListTypesAistCommand, ListTypesAistCommandRunError};
 use AistSubcommand::*;
 use clap::{Parser, Subcommand};
 use errgonomic::map_err;
@@ -18,12 +18,7 @@ pub struct AistCommand {
 
 #[derive(Subcommand, Serialize, Deserialize, Clone, Debug)]
 pub enum AistSubcommand {
-    ListTypesV1(ListTypesAistCommandV1),
-    ListTypesV2(ListTypesAistCommandV2),
-    ListTypesV3(ListTypesAistCommandV3),
-    ListTypesV4(ListTypesAistCommandV4),
-    ListTypesV5(ListTypesAistCommandV5),
-    ListTypesV6(ListTypesAistCommandV6),
+    ListTypes(ListTypesAistCommand),
 }
 
 impl AistCommand {
@@ -34,28 +29,13 @@ impl AistCommand {
             subcommand,
         } = self;
         match subcommand {
-            ListTypesV1(command) => map_err!(command.run(project_dir).await, ListTypesAistCommandV1RunFailed),
-            ListTypesV2(command) => map_err!(command.run(project_dir).await, ListTypesAistCommandV2RunFailed),
-            ListTypesV3(command) => map_err!(command.run(project_dir).await, ListTypesAistCommandV3RunFailed),
-            ListTypesV4(command) => map_err!(command.run(project_dir).await, ListTypesAistCommandV4RunFailed),
-            ListTypesV5(command) => map_err!(command.run(project_dir).await, ListTypesAistCommandV5RunFailed),
-            ListTypesV6(command) => map_err!(command.run(project_dir).await, ListTypesAistCommandV6RunFailed),
+            ListTypes(command) => map_err!(command.run(project_dir).await, ListTypesAistCommandRunFailed),
         }
     }
 }
 
 #[derive(Error, Debug)]
 pub enum AistCommandRunError {
-    #[error("failed to run list-types implementation V1")]
-    ListTypesAistCommandV1RunFailed { source: ListTypesAistCommandV1RunError },
-    #[error("failed to run list-types implementation V2")]
-    ListTypesAistCommandV2RunFailed { source: ListTypesAistCommandV2RunError },
-    #[error("failed to run list-types implementation V3")]
-    ListTypesAistCommandV3RunFailed { source: ListTypesAistCommandV3RunError },
-    #[error("failed to run list-types implementation V4")]
-    ListTypesAistCommandV4RunFailed { source: ListTypesAistCommandV4RunError },
-    #[error("failed to run list-types implementation V5")]
-    ListTypesAistCommandV5RunFailed { source: ListTypesAistCommandV5RunError },
-    #[error("failed to run list-types implementation V6")]
-    ListTypesAistCommandV6RunFailed { source: ListTypesAistCommandV6RunError },
+    #[error("failed to run list-types command")]
+    ListTypesAistCommandRunFailed { source: ListTypesAistCommandRunError },
 }

@@ -1,4 +1,4 @@
-use crate::{LocatedRustTypeDeclaration, RustTypeDeclarationError, RustTypeDefinitionCollector, rust_type_declaration};
+use crate::{LocatedRustTypeDeclaration, RustTypeDeclarationError, rust_type_declaration, rust_type_definitions_from_symbols};
 use errgonomic::{ErrVec, handle_iter};
 use ra_ap_hir::Semantics;
 use ra_ap_ide_db::{FileId, RootDatabase};
@@ -7,9 +7,9 @@ use std::path::PathBuf;
 use thiserror::Error;
 
 /// PRUNING: omits dependency crates and non-type symbols because the requested listing is limited to types declared by workspace members.
-pub fn collect_rust_type_declarations<C: RustTypeDefinitionCollector>(db: &RootDatabase, semantics: &Semantics<'_, RootDatabase>, source_paths: &HashMap<FileId, PathBuf>) -> Result<Vec<LocatedRustTypeDeclaration>, CollectRustTypeDeclarationsError> {
+pub fn collect_rust_type_declarations(db: &RootDatabase, semantics: &Semantics<'_, RootDatabase>, source_paths: &HashMap<FileId, PathBuf>) -> Result<Vec<LocatedRustTypeDeclaration>, CollectRustTypeDeclarationsError> {
     use CollectRustTypeDeclarationsError::*;
-    let results = C::rust_type_definitions(db).map(|definition| rust_type_declaration(db, semantics, source_paths, definition));
+    let results = rust_type_definitions_from_symbols(db).map(|definition| rust_type_declaration(db, semantics, source_paths, definition));
     Ok(handle_iter!(results, RustTypeDeclarationFailed))
 }
 
