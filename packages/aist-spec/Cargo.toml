@@ -16,13 +16,12 @@ title = ""
 workspace = true
 
 [dependencies]
-aist-core = { version = "0.1.0", path = "../aist-core" }
-clap = { version = "4.6.6", features = ["derive", "env"] }
-errgonomic = { git = "https://github.com/DenisGorbachev/errgonomic", version = "0.5.2" }
-itertools = "0.15.0"
-ra_ap_hir = "0.0.349"
-ra_ap_ide_db = "0.0.349"
-save-load = { git = "https://github.com/DenisGorbachev/save-load", version = "0.1.0", features = ["clap", "serde_json", "serde_yaml", "toml"] }
-serde = { version = "1.0.229", features = ["derive"] }
-thiserror = "2"
-tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
+aist-core.workspace = true
+clap.workspace = true
+errgonomic.workspace = true
+ra_ap_hir.workspace = true
+ra_ap_ide_db.workspace = true
+save-load.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tokio.workspace = true

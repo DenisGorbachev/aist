@@ -9,7 +9,6 @@ use thiserror::Error;
 pub struct StructCommand;
 
 impl StructCommand {
-    /// PRUNING: discards the located rust-analyzer struct handle after confirming that the required declaration exists uniquely, because `StructCommand` intentionally has no fields.
     pub fn new(lib: &Crate, db: &RootDatabase) -> Result<Self, StructCommandNewError> {
         use StructCommandNewError::*;
         map_err!(find_struct("Command", lib, db), FindStructFailed).map(|_| Self)

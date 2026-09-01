@@ -16,11 +16,11 @@ title = ""
 workspace = true
 
 [dependencies]
-anyhow = "1"
-errgonomic = { git = "https://github.com/DenisGorbachev/errgonomic", version = "0.5.2" }
-ra_ap_ide_db = "0.0.349"
-ra_ap_load-cargo = "0.0.349"
-ra_ap_proc_macro_api = "0.0.349"
-ra_ap_project_model = "0.0.349"
-ra_ap_vfs = "0.0.349"
-thiserror = "2"
+anyhow.workspace = true
+errgonomic.workspace = true
+ra_ap_ide_db.workspace = true
+ra_ap_load-cargo.workspace = true
+ra_ap_proc_macro_api.workspace = true
+ra_ap_project_model.workspace = true
+ra_ap_vfs.workspace = true
+thiserror.workspace = true

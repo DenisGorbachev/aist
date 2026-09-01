@@ -40,7 +40,6 @@ dependencies = [
  "aist-core",
  "clap",
  "errgonomic",
- "itertools",
  "ra_ap_hir",
  "ra_ap_ide_db",
  "save-load",

@@ -1,5 +1,5 @@
-mod aist_package;
-pub use aist_package::*;
+mod aist_lib_crate;
+pub use aist_lib_crate::*;
 
 mod spec_report;
 pub use spec_report::*;

@@ -4,17 +4,15 @@ use clap::Parser;
 use errgonomic::{PathBufDisplay, handle};
 use save_load::errors::save_one_error::SaveOneError;
 use save_load::format::Format;
-use serde::{Deserialize, Serialize};
 use std::io::stdout;
 use std::path::PathBuf;
 use std::process::ExitCode;
 use thiserror::Error;
 
-#[derive(Parser, Serialize, Deserialize, Clone, Debug)]
+#[derive(Parser, Clone, Debug)]
 #[command(author, version, about, propagate_version = true, flatten_help = true, disable_help_subcommand = true)]
 pub struct SpecCommand {
     #[arg(short = 'p', long)]
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub project_root: Option<PathBuf>,
     #[arg(long, value_enum, default_value_t = Format::Yaml)]
     pub output_format: Format,

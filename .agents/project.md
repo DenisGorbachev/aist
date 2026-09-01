@@ -69,22 +69,22 @@
 - Must have derives:
   - `Serialize`
 - Must have fields:
-  - `aist: Result<AistPackage, AistPackageNewError>`
+  - `aist: Result<AistLibCrate, AistLibCrateNewError>`
 - Must have methods:
   - `new(ws: &WorkspaceInfo) -> Self`
-    - `let aist = AistPackage::new(ws)`
+    - `let aist = AistLibCrate::new(ws)`
 
 Notes:
 
 - The purpose of this struct is to report the current state of the workspace being passed as `project_root`
 
-### struct AistPackage
+### struct AistLibCrate
 
 - Must have fields:
   - `command: Result<StructCommand, StructCommandNewError>`
 - Must have methods:
-  - `new(ws: &WorkspaceInfo) -> Result<Self, AistPackageNewError>`
-    - Must find the unique local package named `aist`
+  - `new(ws: &WorkspaceInfo) -> Result<Self, AistLibCrateNewError>`
+    - Must find the unique local library crate named `aist`
     - Must create `aist_lib: Crate`
     - `let command = StructCommand::new(&aist_lib, &ws.db)`
 

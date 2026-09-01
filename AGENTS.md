@@ -780,22 +780,22 @@ Proxy command example:
 - Must have derives:
   - `Serialize`
 - Must have fields:
-  - `aist: Result<AistPackage, AistPackageNewError>`
+  - `aist: Result<AistLibCrate, AistLibCrateNewError>`
 - Must have methods:
   - `new(ws: &WorkspaceInfo) -> Self`
-    - `let aist = AistPackage::new(ws)`
+    - `let aist = AistLibCrate::new(ws)`
 
 Notes:
 
 - The purpose of this struct is to report the current state of the workspace being passed as `project_root`
 
-##### struct AistPackage
+##### struct AistLibCrate
 
 - Must have fields:
   - `command: Result<StructCommand, StructCommandNewError>`
 - Must have methods:
-  - `new(ws: &WorkspaceInfo) -> Result<Self, AistPackageNewError>`
-    - Must find the unique local package named `aist`
+  - `new(ws: &WorkspaceInfo) -> Result<Self, AistLibCrateNewError>`
+    - Must find the unique local library crate named `aist`
     - Must create `aist_lib: Crate`
     - `let command = StructCommand::new(&aist_lib, &ws.db)`
 
@@ -2493,6 +2493,23 @@ unused_import_braces = "deny"
 absolute_paths = "deny"
 arithmetic_side_effects = "deny"
 
+[workspace.dependencies]
+aist-core = { version = "0.1.0", path = "packages/aist-core" }
+anyhow = "1.0.104"
+clap = { version = "4.6.6", features = ["derive", "env"] }
+errgonomic = { git = "https://github.com/DenisGorbachev/errgonomic" }
+ra_ap_hir = "0.0.349"
+ra_ap_ide_db = "0.0.349"
+ra_ap_load-cargo = "0.0.349"
+ra_ap_proc_macro_api = "0.0.349"
+ra_ap_project_model = "0.0.349"
+ra_ap_syntax = "0.0.349"
+ra_ap_vfs = "0.0.349"
+save-load = { git = "https://github.com/DenisGorbachev/save-load", features = ["clap", "serde_json", "serde_yaml", "toml"] }
+serde = { version = "1.0.229", features = ["derive"] }
+thiserror = "2.0.17"
+tokio = { version = "1.53.1", features = ["macros", "rt", "rt-multi-thread"] }
+
 [package]
 name = "aist"
 version.workspace = true
@@ -2511,17 +2528,17 @@ title = ""
 workspace = true
 
 [dependencies]
-errgonomic = { git = "https://github.com/DenisGorbachev/errgonomic" }
-clap = { version = "4.6.6", features = ["derive", "env"] }
-serde = { version = "1.0.229", features = ["derive"] }
-thiserror = "2"
-tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
-save-load = { git = "https://github.com/DenisGorbachev/save-load", version = "0.1.0", features = ["clap", "serde_json", "serde_yaml", "toml"] }
-ra_ap_hir = "0.0.349"
-ra_ap_ide_db = "0.0.349"
-ra_ap_syntax = "0.0.349"
-ra_ap_vfs = "0.0.349"
-aist-core = { version = "0.1.0", path = "packages/aist-core" }
+aist-core.workspace = true
+clap.workspace = true
+errgonomic.workspace = true
+ra_ap_hir.workspace = true
+ra_ap_ide_db.workspace = true
+ra_ap_syntax.workspace = true
+ra_ap_vfs.workspace = true
+save-load.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
 ```
 
 #### packages/aist-core/Cargo.toml
@@ -2545,14 +2562,14 @@ title = ""
 workspace = true
 
 [dependencies]
-anyhow = "1"
-errgonomic = { git = "https://github.com/DenisGorbachev/errgonomic", version = "0.5.2" }
-ra_ap_ide_db = "0.0.349"
-ra_ap_load-cargo = "0.0.349"
-ra_ap_proc_macro_api = "0.0.349"
-ra_ap_project_model = "0.0.349"
-ra_ap_vfs = "0.0.349"
-thiserror = "2"
+anyhow.workspace = true
+errgonomic.workspace = true
+ra_ap_ide_db.workspace = true
+ra_ap_load-cargo.workspace = true
+ra_ap_proc_macro_api.workspace = true
+ra_ap_project_model.workspace = true
+ra_ap_vfs.workspace = true
+thiserror.workspace = true
 ```
 
 #### packages/aist-spec/Cargo.toml
@@ -2576,16 +2593,15 @@ title = ""
 workspace = true
 
 [dependencies]
-aist-core = { version = "0.1.0", path = "../aist-core" }
-clap = { version = "4.6.6", features = ["derive", "env"] }
-errgonomic = { git = "https://github.com/DenisGorbachev/errgonomic", version = "0.5.2" }
-itertools = "0.15.0"
-ra_ap_hir = "0.0.349"
-ra_ap_ide_db = "0.0.349"
-save-load = { git = "https://github.com/DenisGorbachev/save-load", version = "0.1.0", features = ["clap", "serde_json", "serde_yaml", "toml"] }
-serde = { version = "1.0.229", features = ["derive"] }
-thiserror = "2"
-tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
+aist-core.workspace = true
+clap.workspace = true
+errgonomic.workspace = true
+ra_ap_hir.workspace = true
+ra_ap_ide_db.workspace = true
+save-load.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
 ```
 
 #### packages/aist-core/src/lib.rs
