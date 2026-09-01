@@ -796,9 +796,8 @@ Notes:
 - Must have methods:
   - `new(ws: &WorkspaceInfo) -> Result<Self, AistPackageNewError>`
     - Must find the unique local package named `aist`
-    - Must create `package_crates` containing every `Crate` for a target of the `aist` package
-    - Must report a missing or non-unique `aist` package through `AistPackageNewError`
-    - `let command = StructCommand::new(&package_crates, &ws.db)`
+    - Must create `aist_lib: Crate`
+    - `let command = StructCommand::new(&aist_lib, &ws.db)`
 
 ##### struct StructCommand
 
