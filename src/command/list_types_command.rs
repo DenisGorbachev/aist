@@ -1,11 +1,11 @@
 use crate::{ListRustProjectTypesError, RustProjectTypes, list_rust_project_types};
+use aist_core::WorkspaceInfo;
 use clap::Parser;
 use errgonomic::handle;
 use save_load::errors::save_one_error::SaveOneError;
 use save_load::format::Format;
 use serde::{Deserialize, Serialize};
 use std::io::stdout;
-use std::path::PathBuf;
 use std::process::ExitCode;
 use thiserror::Error;
 
@@ -15,13 +15,10 @@ use thiserror::Error;
 pub struct ListTypesCommand;
 
 impl ListTypesCommand {
-    pub async fn run(self, project_root: PathBuf, output_format: Format) -> Result<ExitCode, ListTypesCommandRunError> {
+    pub async fn run(self, workspace_info: &WorkspaceInfo, output_format: Format) -> Result<ExitCode, ListTypesCommandRunError> {
         use ListTypesCommandRunError::*;
-        let Self = self;
-        let project_types = handle!(list_rust_project_types(&project_root), ListRustProjectTypesFailed);
-        let stdout = stdout();
-        let mut stdout = stdout.lock();
-        handle!(output_format.writeln_one(&mut stdout, &project_types), WritelnOneFailed, output_format, project_types);
+        let project_types = handle!(list_rust_project_types(workspace_info), ListRustProjectTypesFailed);
+        handle!(output_format.writeln_one(&mut stdout().lock(), &project_types), WritelnOneFailed, output_format, project_types);
         Ok(ExitCode::SUCCESS)
     }
 }

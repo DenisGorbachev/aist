@@ -548,13 +548,6 @@ A package that has a remote whose name contains `public` or `pre-public` and end
 
 - It is recommended to use `serde_with` to reduce the code size by avoiding custom `Serialize`/`Deserialize` impls
 
-### Guidelines for `subtype`
-
-- Define newtypes as ordinary structs with explicit `From` / `TryFrom` impls.
-- The macro calls that begin with `subtype` (for example, `subtype!` and `subtype_string!`) are legacy APIs that expand to newtypes.
-  - Don't use them in new code because their checker and preprocessor concepts have been superseded by explicit conversion impls.
-- Use the `SerializeTransparent` derive for a refined newtype that must serialize identically to its inner field while using Serde's `try_from` container attribute for validated deserialization.
-
 ### Guidelines for `clap`
 
 #### Requirements
@@ -2448,6 +2441,7 @@ age = { type = "age", recipients = [
 ```toml
 [workspace]
 resolver = "3"
+members = ["packages/aist-core", "packages/aist-spec"]
 
 [workspace.package]
 version = "0.1.0"
@@ -2510,27 +2504,126 @@ title = ""
 workspace = true
 
 [dependencies]
-derive-getters = { version = "0.5.0", features = ["auto_copy_getters"] }
-derive-new = "0.7.0"
-derive_more = { version = "2.1.1", features = ["full"] }
 errgonomic = { git = "https://github.com/DenisGorbachev/errgonomic" }
-itertools = "0.15.0"
-standard-traits = { git = "https://github.com/DenisGorbachev/standard-traits" }
-strum = { version = "0.28.0", features = ["derive"] }
-stub-macro = { version = "0.3.1" }
-subtype = { git = "https://github.com/DenisGorbachev/subtype" }
 clap = { version = "4.6.6", features = ["derive", "env"] }
 serde = { version = "1.0.229", features = ["derive"] }
 thiserror = "2"
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
 save-load = { git = "https://github.com/DenisGorbachev/save-load", version = "0.1.0", features = ["clap", "serde_json", "serde_yaml", "toml"] }
-anyhow = "1"
 ra_ap_hir = "0.0.349"
 ra_ap_ide_db = "0.0.349"
-ra_ap_load-cargo = "0.0.349"
-ra_ap_project_model = "0.0.349"
 ra_ap_syntax = "0.0.349"
 ra_ap_vfs = "0.0.349"
+aist-core = { version = "0.1.0", path = "packages/aist-core" }
+```
+
+#### packages/aist-core/Cargo.toml
+
+```toml
+[package]
+name = "aist-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+homepage.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+exclude.workspace = true
+
+[package.metadata.details]
+title = ""
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow = "1"
+errgonomic = { git = "https://github.com/DenisGorbachev/errgonomic", version = "0.5.2" }
+ra_ap_ide_db = "0.0.349"
+ra_ap_load-cargo = "0.0.349"
+ra_ap_proc_macro_api = "0.0.349"
+ra_ap_project_model = "0.0.349"
+ra_ap_vfs = "0.0.349"
+thiserror = "2"
+```
+
+#### packages/aist-spec/Cargo.toml
+
+```toml
+[package]
+name = "aist-spec"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+homepage.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+exclude.workspace = true
+
+[package.metadata.details]
+title = ""
+
+[lints]
+workspace = true
+
+[dependencies]
+aist-core = { version = "0.1.0", path = "../aist-core" }
+clap = { version = "4.6.6", features = ["derive", "env"] }
+errgonomic = { git = "https://github.com/DenisGorbachev/errgonomic", version = "0.5.2" }
+itertools = "0.15.0"
+ra_ap_hir = "0.0.349"
+ra_ap_ide_db = "0.0.349"
+save-load = { git = "https://github.com/DenisGorbachev/save-load", version = "0.1.0", features = ["clap", "serde_json", "serde_yaml", "toml"] }
+serde = { version = "1.0.229", features = ["derive"] }
+thiserror = "2"
+tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
+```
+
+#### packages/aist-core/src/lib.rs
+
+```rust
+//! Shared rust-analyzer workspace loading for aist tools.
+
+mod types;
+pub use types::*;
+```
+
+#### packages/aist-spec/src/lib.rs
+
+```rust
+//! Structural conformance reporting for aist workspaces.
+
+mod functions;
+pub use functions::*;
+
+mod types;
+pub use types::*;
+
+mod spec_command;
+pub use spec_command::*;
+```
+
+#### packages/aist-spec/src/main.rs
+
+```rust
+use aist_spec::SpecCommand;
+use clap::Parser;
+use errgonomic::exit_result;
+use std::process::ExitCode;
+
+#[tokio::main]
+async fn main() -> ExitCode {
+    let command = SpecCommand::parse();
+    exit_result(command.run().await)
+}
+
+#[test]
+fn verify_cli() {
+    use clap::CommandFactory;
+    SpecCommand::command().debug_assert();
+}
 ```
 
 #### src/lib.rs
@@ -2559,8 +2652,7 @@ use std::process::ExitCode;
 #[tokio::main]
 async fn main() -> ExitCode {
     let args = Command::parse();
-    let result = args.run().await;
-    exit_result(result)
+    exit_result(args.run().await)
 }
 
 #[test]

@@ -1,6 +1,7 @@
 use Subcommand::*;
+use aist_core::{TryFromPathForWorkspaceInfoError, WorkspaceInfo};
 use clap::Parser;
-use errgonomic::map_err;
+use errgonomic::{PathBufDisplay, handle, map_err};
 use save_load::format::Format;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -31,14 +32,17 @@ impl Command {
             output_format,
             subcommand,
         } = self;
+        let workspace_info = handle!(WorkspaceInfo::try_from(project_root.as_path()), TryFromFailed, project_root);
         match subcommand {
-            ListTypes(command) => map_err!(command.run(project_root, output_format).await, ListTypesCommandRunFailed),
+            ListTypes(command) => map_err!(command.run(&workspace_info, output_format).await, ListTypesCommandRunFailed),
         }
     }
 }
 
 #[derive(Error, Debug)]
 pub enum CommandRunError {
+    #[error("failed to load project root '{project_root}'")]
+    TryFromFailed { source: TryFromPathForWorkspaceInfoError, project_root: PathBufDisplay },
     #[error("failed to run list-types command")]
     ListTypesCommandRunFailed { source: ListTypesCommandRunError },
 }

@@ -6,25 +6,45 @@ version = 4
 name = "aist"
 version = "0.1.0"
 dependencies = [
- "anyhow",
+ "aist-core",
  "clap",
- "derive-getters",
- "derive-new",
- "derive_more 2.1.1",
  "errgonomic",
- "itertools",
  "ra_ap_hir",
  "ra_ap_ide_db",
- "ra_ap_load-cargo",
- "ra_ap_project_model",
  "ra_ap_syntax",
  "ra_ap_vfs",
  "save-load",
  "serde",
- "standard-traits",
- "strum 0.28.0",
- "stub-macro",
- "subtype",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "aist-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "errgonomic",
+ "ra_ap_ide_db",
+ "ra_ap_load-cargo",
+ "ra_ap_proc_macro_api",
+ "ra_ap_project_model",
+ "ra_ap_vfs",
+ "thiserror",
+]
+
+[[package]]
+name = "aist-spec"
+version = "0.1.0"
+dependencies = [
+ "aist-core",
+ "clap",
+ "errgonomic",
+ "itertools",
+ "ra_ap_hir",
+ "ra_ap_ide_db",
+ "save-load",
+ "serde",
  "thiserror",
  "tokio",
 ]
@@ -316,28 +336,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7cd812cc2bc1d69d4764bd80df88b4317eaef9e773c75226407d9bc0876b211c"
 
 [[package]]
-name = "derive-getters"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74ef43543e701c01ad77d3a5922755c6a1d71b22d942cb8042be4994b380caff"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.113",
-]
-
-[[package]]
-name = "derive-new"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2cdc8d50f426189eef89dac62fabfa0abb27d5cc008f25bf4156a0203325becc"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.113",
-]
-
-[[package]]
 name = "derive-where"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -350,31 +348,11 @@ dependencies = [
 
 [[package]]
 name = "derive_more"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a9b99b9cbbe49445b21764dc0625032a89b145a2642e67603e1c936f5458d05"
-dependencies = [
- "derive_more-impl 1.0.0",
-]
-
-[[package]]
-name = "derive_more"
 version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d751e9e49156b02b44f9c1815bcb94b984cdcc4396ecc32521c739452808b134"
 dependencies = [
- "derive_more-impl 2.1.1",
-]
-
-[[package]]
-name = "derive_more-impl"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb7330aeadfbe296029522e6c40f315320aba36fc43a5b3632f3795348f3bd22"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.113",
+ "derive_more-impl",
 ]
 
 [[package]]
@@ -884,12 +862,6 @@ name = "powerfmt"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "439ee305def115ba05938db6eb1644ff94165c5ab5e9420d1c1bcedbba909391"
-
-[[package]]
-name = "pretty-type-name"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0f73cdaf19b52e6143685c3606206e114a4dfa969d6b14ec3894c88eb38bd4b"
 
 [[package]]
 name = "proc-macro2"
@@ -1730,11 +1702,11 @@ version = "0.1.0"
 source = "git+https://github.com/DenisGorbachev/save-load#f6d2d8d39d686ed7cefef2e2da2aad4d07f78a98"
 dependencies = [
  "clap",
- "derive_more 2.1.1",
+ "derive_more",
  "serde",
  "serde_json",
  "serde_yaml",
- "strum 0.27.2",
+ "strum",
  "toml 0.9.12+spec-1.1.0",
 ]
 
@@ -1851,11 +1823,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
-name = "standard-traits"
-version = "0.1.0"
-source = "git+https://github.com/DenisGorbachev/standard-traits#bc0b8a3fcbd3d688f06efbd4bb0b8a7798ac2867"
-
-[[package]]
 name = "strsim"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1867,16 +1834,7 @@ version = "0.27.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af23d6f6c1a224baef9d3f61e287d2761385a5b88fdab4eb4c6f11aeb54c4bcf"
 dependencies = [
- "strum_macros 0.27.2",
-]
-
-[[package]]
-name = "strum"
-version = "0.28.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9628de9b8791db39ceda2b119bbe13134770b56c138ec1d3af810d045c04f9bd"
-dependencies = [
- "strum_macros 0.28.0",
+ "strum_macros",
 ]
 
 [[package]]
@@ -1889,35 +1847,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.113",
-]
-
-[[package]]
-name = "strum_macros"
-version = "0.28.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab85eea0270ee17587ed4156089e10b9e6880ee688791d45a905f5b1ca36f664"
-dependencies = [
- "heck",
- "proc-macro2",
- "quote",
- "syn 2.0.113",
-]
-
-[[package]]
-name = "stub-macro"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90eceb654ad9c3e76f28b685e601e1c7b67a856de4dd59e158d5a9b7377b1aa6"
-
-[[package]]
-name = "subtype"
-version = "0.1.0"
-source = "git+https://github.com/DenisGorbachev/subtype#b0e33ef6780503d7f87b460840f7eb4261e43f0d"
-dependencies = [
- "derive_more 1.0.0",
- "errgonomic",
- "pretty-type-name",
- "standard-traits",
 ]
 
 [[package]]
