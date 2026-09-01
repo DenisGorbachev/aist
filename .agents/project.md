@@ -45,6 +45,19 @@
 - Must have impls:
   - `impl TryFrom<&Path> for WorkspaceInfo`
     - Must call `load_workspace_at` with constant `cargo_config`, constant `load_config`, dummy `progress`
+- Must have methods:
+  - `find_crate(name: &str, file_name: &str) -> Result<Crate, WorkspaceInfoFindCrateError>`
+    - Must call `find_crate(name, file_name, &self.db, &self.vfs)`
+
+### fn find_crate
+
+- Must have inputs:
+  - `name: &str`
+  - `file_name: &str`
+  - `db: &RootDatabase`
+  - `vfs: &Vfs`
+- Must have output: `Result<Crate, FindCrateError>`
+- Must find the unique local crate with the requested crate display name and crate-root file name
 
 ## aist-spec package
 
@@ -84,7 +97,7 @@ Notes:
   - `command: Result<StructCommand, StructCommandNewError>`
 - Must have methods:
   - `new(ws: &WorkspaceInfo) -> Result<Self, AistLibCrateNewError>`
-    - Must find the unique local library crate named `aist`
+    - `let aist_lib = handle!(ws.find_crate("aist", "lib.rs"), FindCrateFailed)`
     - Must create `aist_lib: Crate`
     - `let command = StructCommand::new(&aist_lib, &ws.db)`
 
