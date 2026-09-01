@@ -13,9 +13,6 @@
 
 ## aist package
 
-- Must contain items:
-  - [Command](#struct-command)
-  - [ListTypesCommand](#struct-listtypescommand)
 - Must have dependencies:
   - Any rust-analyzer crates
   - `save-load`
@@ -39,10 +36,7 @@
 
 ## aist-core package
 
-- Must contain items:
-  - [WorkspaceInfo](#struct-workspaceinfo)
-
-## struct WorkspaceInfo
+### struct WorkspaceInfo
 
 - Must have fields:
   - `db: RootDatabase`
@@ -54,55 +48,61 @@
 
 ## aist-spec package
 
-- Must contain items:
-  - [SpecCommand](#struct-speccommand)
 - Must contain functions:
   - `main`
     - `let command = SpecCommand::parse()`
-    - `let result = command.run().await`
 
-## struct SpecCommand
+### struct SpecCommand
 
 - Must have fields:
   - `project_root: Option<PathBuf>` (short = 'p')
   - `output_format: Format` (`default_value_t = Format::Yaml`)
 - Must have methods:
   - `run`
-    - `let project_root = unwrap_or_current_dir(project_root)`
-    - `let report = SpecReport::new()`
-    - Must output `report`
+    - `let project_root = handle!(unwrap_or_current_dir(project_root), UnwrapOrCurrentDirFailed)`
+    - `let workspace_info = handle!(WorkspaceInfo::try_from(project_root.as_path()), TryFromFailed, project_root)`
+    - `let report = SpecReport::new(&workspace_info)`
+    - Must serialize and output `report` using `output_format`
 
-## struct SpecReport
+### struct SpecReport
 
+- Must have derives:
+  - `Serialize`
 - Must have fields:
   - `aist: Result<AistPackage, AistPackageNewError>`
 - Must have methods:
-  - `new(ws: &WorkspaceInfo)`
+  - `new(ws: &WorkspaceInfo) -> Self`
+    - `let aist = AistPackage::new(ws)`
 
 Notes:
 
 - The purpose of this struct is to report the current state of the workspace being passed as `project_root`
 
-## struct AistPackage
+### struct AistPackage
 
 - Must have fields:
   - `command: Result<StructCommand, StructCommandNewError>`
 - Must have methods:
-  - `new(ws: &WorkspaceInfo)`
-    - `let command = StructCommand::new(ws)`
+  - `new(ws: &WorkspaceInfo) -> Result<Self, AistPackageNewError>`
+    - Must find the unique local package named `aist`
+    - Must create `package_crates` containing every `Crate` for a target of the `aist` package
+    - Must report a missing or non-unique `aist` package through `AistPackageNewError`
+    - `let command = StructCommand::new(&package_crates, &ws.db)`
 
-## struct StructCommand
+### struct StructCommand
 
 - Must not have fields
 - Must have methods:
-  - `new(ws: &WorkspaceInfo)`
-    - Must call `find_type("Command", &ws.db)`
+  - `new(lib: &Crate, db: &RootDatabase) -> Result<Self, StructCommandNewError>`
+    - Must call `find_struct("Command", lib, db)`
 
-## fn find_type
+### fn find_struct
 
 - Must have inputs:
   - `name: &str`
+  - `krate: &Crate`
   - `db: &RootDatabase`
-- Must have output: (TODO: determine the output type; should be an identifier of the type found by `name`)
-- Must find the type by `name`
-- Must check that the type is unique
+- Must have output: `Result<Struct, FindStructError>`
+- Must find struct declarations by `name` only within `krate`
+- Must ignore imports, aliases, and non-struct types
+- Must check that the struct is unique
