@@ -59,16 +59,35 @@
 - Must have output: `Result<Crate, FindCrateError>`
 - Must find the unique local crate with the requested crate display name and crate-root file name
 
-### fn find_struct
+### fn filter_adt
 
 - Must have inputs:
   - `name: &str`
   - `krate: &Crate`
   - `db: &RootDatabase`
-- Must have output: `Result<Struct, FindStructError>`
-- Must find struct declarations by `name` only within `krate`
-- Must ignore imports, aliases, and non-struct types
-- Must check that the struct is unique
+- Must have output: `impl Iterator<Item = Adt>`
+- Must filter ADT declarations by `name` only within `krate`
+- Must ignore imports, aliases, and non-ADT types
+
+### fn get_adt
+
+- Must have inputs:
+  - `name: &str`
+  - `krate: &Crate`
+  - `db: &RootDatabase`
+- Must have output: `Result<Adt, GetAdtError>`
+- Must call `filter_adt(name, krate, db)`
+- Must check that the ADT is unique
+
+### fn get_struct
+
+- Must have inputs:
+  - `name: &str`
+  - `krate: &Crate`
+  - `db: &RootDatabase`
+- Must have output: `Result<Struct, GetStructError>`
+- Must call `get_adt(name, krate, db)`
+- Must return an error if the ADT is not a struct
 
 ## aist-spec package
 
@@ -117,4 +136,4 @@ Notes:
 - Must not have fields
 - Must have methods:
   - `new(lib: &Crate, db: &RootDatabase) -> Result<Self, StructCommandNewError>`
-    - Must call `find_struct("Command", lib, db)`
+    - Must call `get_struct("Command", lib, db)`
