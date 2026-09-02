@@ -1,4 +1,4 @@
-use crate::{FindStructError, find_struct};
+use aist_core::{FindStructError, find_struct};
 use errgonomic::map_err;
 use ra_ap_hir::Crate;
 use ra_ap_ide_db::RootDatabase;

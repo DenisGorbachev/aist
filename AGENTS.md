@@ -774,6 +774,17 @@ Proxy command example:
 - Must have output: `Result<Crate, FindCrateError>`
 - Must find the unique local crate with the requested crate display name and crate-root file name
 
+##### fn find_struct
+
+- Must have inputs:
+  - `name: &str`
+  - `krate: &Crate`
+  - `db: &RootDatabase`
+- Must have output: `Result<Struct, FindStructError>`
+- Must find struct declarations by `name` only within `krate`
+- Must ignore imports, aliases, and non-struct types
+- Must check that the struct is unique
+
 #### aist-spec package
 
 - Must contain functions:
@@ -822,17 +833,6 @@ Notes:
 - Must have methods:
   - `new(lib: &Crate, db: &RootDatabase) -> Result<Self, StructCommandNewError>`
     - Must call `find_struct("Command", lib, db)`
-
-##### fn find_struct
-
-- Must have inputs:
-  - `name: &str`
-  - `krate: &Crate`
-  - `db: &RootDatabase`
-- Must have output: `Result<Struct, FindStructError>`
-- Must find struct declarations by `name` only within `krate`
-- Must ignore imports, aliases, and non-struct types
-- Must check that the struct is unique
 
 ### Error handling
 
