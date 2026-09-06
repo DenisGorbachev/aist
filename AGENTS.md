@@ -796,6 +796,26 @@ Proxy command example:
 - Must call `get_adt(name, krate, db)`
 - Must return an error if the ADT is not a struct
 
+#### fn validate_with_llm
+
+An fn that calls an LLM to perform validation of a code item.
+
+Decisions:
+
+- How to implement?
+  - Options
+    - Send a single request with a boolean schema
+      - May load AGENTS.md separately
+    - Launch a coding agent with a schema
+      - Will load AGENTS.md automatically
+
+Notes:
+
+- The question might reference concepts from AGENTS.md
+- There can be multiple questions related to a single code item, and it might be better to ask them together
+- It's not better to ask multiple questions about the whole repo, because a modification of a single file will lead to invalidation of cache
+- Cache key must be localized (at least smaller than the whole repo)
+
 #### aist-spec package
 
 - Must contain functions:
@@ -851,7 +871,6 @@ Notes:
 
 ```shell
 origin
-repoconf-rust-private-lib-template
 ```
 
 ### Project files
