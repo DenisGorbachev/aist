@@ -1,9 +1,10 @@
-use crate::{SpecReport, UnwrapOrCurrentDirError, unwrap_or_current_dir};
+use crate::{SpecReport, unwrap_or_current_dir};
 use aist_core::{TryFromPathForWorkspaceInfoError, WorkspaceInfo};
 use clap::Parser;
 use errgonomic::{PathBufDisplay, handle};
 use save_load::errors::save_one_error::SaveOneError;
 use save_load::format::Format;
+use std::io;
 use std::io::stdout;
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -36,7 +37,7 @@ impl SpecCommand {
 #[derive(Error, Debug)]
 pub enum SpecCommandRunError {
     #[error("failed to resolve the project root")]
-    UnwrapOrCurrentDirFailed { source: UnwrapOrCurrentDirError },
+    UnwrapOrCurrentDirFailed { source: io::Error },
     #[error("failed to load project root '{project_root}'")]
     TryFromFailed { source: TryFromPathForWorkspaceInfoError, project_root: PathBufDisplay },
     #[error("failed to write the specification report as {output_format}")]
