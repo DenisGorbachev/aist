@@ -111,9 +111,10 @@ Notes:
 
 ## aist-spec package
 
-- Must contain functions:
-  - `main`
-    - `let command = SpecCommand::parse()`
+### fn main
+
+- Must contain statements:
+  - `let command = SpecCommand::parse()`
 
 ### struct SpecCommand
 
