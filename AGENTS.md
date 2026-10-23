@@ -442,6 +442,9 @@ A function marked with `#[test]` or `#[tokio::test]`.
 #### Macros
 
 - Write `macro_rules!` macros to reduce boilerplate
+- In `macro_rules!` expansions:
+  - Use full paths without a leading `::` for foreign types (e.g. `std::sync::Arc`), except those in the standard prelude.
+  - Use `$crate` paths for types defined in this crate (e.g. `$crate::MyType`).
 - If you see similar code in different places, write a macro and replace the similar code with a macro call
 - If the macros has variadic args:
   - Then: do add `$(,)?`
@@ -2322,6 +2325,7 @@ fd = "10.4.2"
 "cargo:cargo-expand" = "1.0.114"
 "cargo:taplo-cli" = "0.10.0"
 "cargo:sd" = "1.0.0"
+"cargo:cargo-edit" = "0.13.13"
 
 [hooks]
 postinstall = { task = "git:install-hooks" }
@@ -2481,6 +2485,18 @@ age = { type = "age", recipients = [
     "age1sf4r4amev2svqr6llwg8hgtz9n7p5qdh7hh0mavcshzfrmgfduksnq3hql",
     "age1605gsnxpe536sprwccyumq74veg0g80u55n8ggems0t8deau6qdsfnq3m3"
 ] }
+```
+
+### ~/.cargo/config.toml
+
+```toml
+[build]
+target = "host-tuple"
+# In the sandbox, ~/workspace is mounted from macOS, while Cargo's cache home is on the container-local filesystem.
+# Concurrent Cargo commands have failed when compilation intermediates were stored on the macOS mount.
+# Give each workspace its own local build directory: one directory shared by all workspaces would serialize their builds and let `cargo clean` in one workspace remove another workspace's artifacts.
+# sccache shares reusable compiler outputs without sharing mutable Cargo state.
+build-dir = "{cargo-cache-home}/build/{workspace-path-hash}"
 ```
 
 ### Cargo.toml
