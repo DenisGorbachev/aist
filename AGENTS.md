@@ -2572,15 +2572,16 @@ cargo_metadata = "0.23.1"
 anyhow = "1.0.104"
 clap = { version = "4.6.6", features = ["derive", "env"] }
 errgonomic = { git = "https://github.com/DenisGorbachev/errgonomic" }
-quote = "1.0.47"
-syn = { version = "2", features = ["full", "extra-traits"] }
 toml = "1.1.8"
 ra_ap_hir = "0.0.358"
 ra_ap_ide_db = "0.0.358"
 ra_ap_load-cargo = "0.0.358"
 ra_ap_proc_macro_api = "0.0.358"
 ra_ap_project_model = "0.0.358"
+ra_ap_span = "0.0.358"
 ra_ap_syntax = "0.0.358"
+ra_ap_syntax-bridge = "0.0.358"
+ra_ap_tt = "0.0.358"
 ra_ap_vfs = "0.0.358"
 save-load = { git = "https://github.com/DenisGorbachev/save-load", features = ["clap", "serde_json", "serde_yaml", "toml"] }
 serde = { version = "1.0.229", features = ["derive"] }
@@ -2677,22 +2678,23 @@ workspace = true
 anyhow = { workspace = true, optional = true }
 cargo_metadata = { workspace = true, optional = true }
 errgonomic.workspace = true
-quote = { workspace = true, optional = true }
 ra_ap_hir = { workspace = true, optional = true }
 ra_ap_ide_db = { workspace = true, optional = true }
 ra_ap_load-cargo = { workspace = true, optional = true }
 ra_ap_proc_macro_api = { workspace = true, optional = true }
 ra_ap_project_model = { workspace = true, optional = true }
+ra_ap_span = { workspace = true, optional = true }
 ra_ap_syntax = { workspace = true, optional = true }
+ra_ap_syntax-bridge = { workspace = true, optional = true }
+ra_ap_tt = { workspace = true, optional = true }
 ra_ap_vfs = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
-syn = { workspace = true, optional = true }
 thiserror.workspace = true
 toml = { workspace = true, optional = true }
 
 [features]
 default = ["rust"]
-rust = ["dep:anyhow", "dep:cargo_metadata", "dep:quote", "dep:ra_ap_hir", "dep:ra_ap_ide_db", "dep:ra_ap_load-cargo", "dep:ra_ap_proc_macro_api", "dep:ra_ap_project_model", "dep:ra_ap_syntax", "dep:ra_ap_vfs", "dep:serde", "dep:syn", "dep:toml"]
+rust = ["dep:anyhow", "dep:cargo_metadata", "dep:ra_ap_hir", "dep:ra_ap_ide_db", "dep:ra_ap_load-cargo", "dep:ra_ap_proc_macro_api", "dep:ra_ap_project_model", "dep:ra_ap_span", "dep:ra_ap_syntax", "dep:ra_ap_syntax-bridge", "dep:ra_ap_tt", "dep:ra_ap_vfs", "dep:serde", "dep:toml"]
 ```
 
 ### packages/aist-spec/Cargo.toml

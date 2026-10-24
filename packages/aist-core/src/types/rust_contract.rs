@@ -1,9 +1,10 @@
-use crate::{ContractReport, WorkspaceInfo, WorkspaceInfoFindCrateError, definition_source, item_name, item_shape, observe};
-use errgonomic::{handle, handle_bool, handle_opt};
-use quote::{ToTokens, format_ident, quote};
+use crate::{CompareDeclarationError, CompareEnumDeclarationError, CompareMethodError, ParseDeclarationError, ParseDeriveAttributeError, ParsePathError, WorkspaceInfo, WorkspaceInfoFindCrateError, compare_declaration, compare_enum_declaration, compare_method, definition_source, item_name, parse_declaration, parse_derive_attribute, parse_path, syntax_equal};
+use errgonomic::{ErrVec, handle, handle_bool, handle_iter, handle_opt};
 use ra_ap_hir::{AssocItem, Crate, HasSource, Impl, ModuleDef, attach_db};
-use ra_ap_syntax::AstNode;
-use syn::{Fields, ImplItemFn, Item, ItemStruct, Meta, TraitItemFn, Visibility, parse_str};
+use ra_ap_syntax::{
+    AstNode,
+    ast::{self, HasName, Item},
+};
 use thiserror::Error;
 
 pub struct RustContract<'a> {
@@ -21,7 +22,7 @@ impl<'a> RustContract<'a> {
         })
     }
 
-    pub fn definition(&self, name: &str, accepts: impl Fn(ModuleDef) -> bool) -> Result<ModuleDef, RustContractDefinitionError> {
+    pub fn definition(&self, name: &str, mut accepts: impl FnMut(ModuleDef) -> bool) -> Result<ModuleDef, RustContractDefinitionError> {
         use RustContractDefinitionError::*;
         let db = &self.workspace.db;
         let mut definitions = self
@@ -42,46 +43,55 @@ impl<'a> RustContract<'a> {
 
     pub fn item(&self, expected: &Item) -> Result<Item, RustContractItemError> {
         use RustContractItemError::*;
-        let name = handle_opt!(item_name(expected), ItemKindInvalid, expected: expected.to_token_stream().to_string());
-        let definition = handle!(self.definition(&name, |definition| matches!((expected, definition), (Item::Struct(_) | Item::Enum(_), ModuleDef::Adt(_)) | (Item::Type(_), ModuleDef::TypeAlias(_)) | (Item::Trait(_), ModuleDef::Trait(_)) | (Item::Macro(_), ModuleDef::Macro(_)))), DefinitionFailed, name);
-        let source = handle_opt!(definition_source(definition, &self.workspace.db), SourceNotFound, name);
-        Ok(handle!(parse_str(&source), ParseStrFailed, text: source))
+        let name = handle_opt!(item_name(expected), ItemKindInvalid, expected: expected.syntax().to_string());
+        let definition = handle!(self.definition(&name, |definition| matches!((expected, definition), (Item::Struct(_) | Item::Enum(_), ModuleDef::Adt(_)) | (Item::TypeAlias(_), ModuleDef::TypeAlias(_)) | (Item::Trait(_), ModuleDef::Trait(_)) | (Item::MacroRules(_) | Item::MacroDef(_), ModuleDef::Macro(_)))), DefinitionFailed, name);
+        Ok(handle_opt!(definition_source(definition, &self.workspace.db), SourceNotFound, name))
     }
 
-    pub fn declaration(&self, report: &mut ContractReport, expected: &str) {
-        let expected: Item = observe!(report, parse_str(expected));
-        let Some(name) = item_name(&expected) else {
-            report.require("supported declaration kind", false);
-            return;
+    pub fn declaration(&self, expected: &str) -> Result<(), RustContractDeclarationError> {
+        use RustContractDeclarationError::*;
+        let expected = handle!(parse_declaration(expected, self.krate.edition(&self.workspace.db)), ParseDeclarationFailed);
+        let actual = handle!(self.item(&expected), ItemFailed, expected: expected.syntax().to_string());
+        handle!(compare_declaration(&actual, &expected), CompareDeclarationFailed);
+        Ok(())
+    }
+
+    pub fn require_derive(&self, owner: &str, path: &str) -> Result<(), RustContractRequireDeriveError> {
+        use RustContractRequireDeriveError::*;
+        let edition = self.krate.edition(&self.workspace.db);
+        let required = handle!(parse_path(path, edition), ParsePathFailed, owner: owner.to_owned());
+        let definition = handle!(self.definition(owner, |item| matches!(item, ModuleDef::Adt(_))), DefinitionFailed, path: path.to_owned());
+        let item = handle_opt!(definition_source(definition, &self.workspace.db), SourceNotFound, owner: owner.to_owned(), path: path.to_owned());
+        let attributes = item
+            .syntax()
+            .children()
+            .filter_map(ast::Attr::cast)
+            .filter(|attr| attr.simple_name().is_some_and(|name| name == "derive"));
+        let paths = handle_iter!(attributes.map(|attr| parse_derive_attribute(&attr, edition)), ParseDeriveAttributeFailed, owner: owner.to_owned(), path: path.to_owned());
+        let found = paths
+            .iter()
+            .flatten()
+            .any(|actual| syntax_equal(actual.syntax(), required.syntax(), &|element| element.kind().is_trivia(), &|element| element.kind().is_trivia()));
+        handle_bool!(!found, DeriveNotFound, owner: owner.to_owned(), path: path.to_owned(), actual: item.syntax().to_string());
+        Ok(())
+    }
+
+    pub fn method(&self, owner: &str, expected: &str) -> Result<(), RustContractMethodError> {
+        use RustContractMethodError::*;
+        let item = handle!(parse_declaration(expected, self.krate.edition(&self.workspace.db)), ParseDeclarationFailed, owner: owner.to_owned());
+        let Item::Fn(expected_fn) = item else {
+            return Err(MethodInvalid {
+                owner: owner.to_owned(),
+                expected: expected.to_owned(),
+            });
         };
-        let actual = observe!(report, self.item(&expected));
-        report.equal(format!("{name}/declaration"), item_shape(actual), item_shape(expected));
-    }
-
-    pub fn compiler_struct(&self, report: &mut ContractReport, expected: &str) {
-        let expected: ItemStruct = observe!(report, parse_str(expected));
-        let name = &expected.ident;
-        let generics = &expected.generics;
-        let (_, arguments, _) = generics.split_for_impl();
-        let alias = format_ident!("{name}Rc");
-        self.declaration(report, &quote!(pub type #alias #generics = Rc<#name #arguments>;).to_string());
-        let name = name.to_string();
-        let expected = Item::Struct(expected);
-        let actual = observe!(report, self.item(&expected));
-        let has_getters = matches!(&actual, Item::Struct(item) if item.attrs.iter().any(|attr| match &attr.meta {
-            Meta::List(list) if list.path.is_ident("derive") => list.tokens.clone().into_iter().any(|token| token.to_string() == "Getters"),
-            _ => false,
-        }));
-        report.equal(format!("{name}/declaration"), item_shape(actual), item_shape(expected));
-        report.require(format!("{name}/derive Getters"), has_getters);
-    }
-
-    pub fn method(&self, report: &mut ContractReport, owner: &str, expected: &str) {
-        let expected: TraitItemFn = observe!(report, parse_str(expected));
-        let definition = observe!(report, self.definition(owner, |item| matches!(item, ModuleDef::Adt(_))));
+        let name = handle_opt!(expected_fn.name(), NameNotFound, owner: owner.to_owned(), expected: expected.to_owned());
+        let definition = handle!(self.definition(owner, |item| matches!(item, ModuleDef::Adt(_))), DefinitionFailed, expected: expected.to_owned());
         let ModuleDef::Adt(adt) = definition else {
-            report.require(format!("{owner}/ADT"), false);
-            return;
+            return Err(AdtInvalid {
+                owner: owner.to_owned(),
+                expected: expected.to_owned(),
+            });
         };
         let db = &self.workspace.db;
         let methods = attach_db(db, || {
@@ -90,65 +100,67 @@ impl<'a> RustContract<'a> {
                 .filter(|item| item.trait_(db).is_none())
                 .flat_map(|item| item.items(db))
                 .filter_map(|item| match item {
-                    AssocItem::Function(function) if expected.sig.ident == function.name(db).as_str() => Some(function),
+                    AssocItem::Function(function) if name.text() == function.name(db).as_str() => Some(function),
                     _ => None,
                 })
                 .collect::<Vec<_>>()
         });
         let [method] = methods.as_slice() else {
-            report.equal(format!("{owner}::{}/unique method", expected.sig.ident), methods.len(), 1);
-            return;
+            return Err(MethodNotUniqueInvalid {
+                owner: owner.to_owned(),
+                expected: expected.to_owned(),
+                found: methods.len(),
+            });
         };
-        let Some(source) = method.source(db) else {
-            report.require(format!("{owner}::{}/source", expected.sig.ident), false);
-            return;
-        };
-        let mut actual: ImplItemFn = observe!(report, parse_str(&source.value.syntax().to_string()));
-        actual.sig.inputs.pop_punct();
-        report.require(format!("{owner}::{}/public", expected.sig.ident), matches!(actual.vis, Visibility::Public(_)));
-        report.equal(format!("{owner}::{}/signature", expected.sig.ident), actual.sig.to_token_stream().to_string(), expected.sig.to_token_stream().to_string());
+        let source = handle_opt!(method.source(db), SourceNotFound, owner: owner.to_owned(), expected: expected.to_owned());
+        handle!(compare_method(&source.value, &expected_fn), CompareMethodFailed, owner: owner.to_owned());
+        Ok(())
     }
 
-    pub fn forbids_traits(&self, report: &mut ContractReport, owner: &str, forbidden: &[&str]) {
-        let definition = observe!(report, self.definition(owner, |item| matches!(item, ModuleDef::Adt(_))));
+    pub fn forbids_traits(&self, owner: &str, forbidden: &[&str]) -> Result<(), RustContractForbidsTraitsError> {
+        use RustContractForbidsTraitsError::*;
+        let forbidden: Vec<_> = forbidden.iter().map(|name| (*name).to_owned()).collect();
+        let definition = handle!(self.definition(owner, |item| matches!(item, ModuleDef::Adt(_))), DefinitionFailed, forbidden);
         let ModuleDef::Adt(adt) = definition else {
-            report.require(format!("{owner}/ADT"), false);
-            return;
+            return Err(AdtInvalid {
+                owner: owner.to_owned(),
+                forbidden,
+            });
         };
         let db = &self.workspace.db;
-        let traits = attach_db(db, || {
+        let found = attach_db(db, || {
             Impl::all_for_type(db, adt.ty(db))
                 .into_iter()
                 .filter_map(|item| {
                     item.trait_(db)
                         .map(|trait_| trait_.name(db).as_str().to_owned())
                 })
+                .filter(|name| forbidden.contains(name))
                 .collect::<Vec<_>>()
         });
-        forbidden
-            .iter()
-            .for_each(|name| report.require(format!("{owner}/does not implement {name}"), !traits.iter().any(|actual| actual == name)));
+        handle_bool!(!found.is_empty(), TraitsInvalid, owner: owner.to_owned(), forbidden, found);
+        Ok(())
     }
 
-    pub fn test_fn(&self, report: &mut ContractReport, name: &str) {
-        let definition = observe!(report, self.definition(name, |item| matches!(item, ModuleDef::Function(_))));
-        report.require(format!("{name}/test function"), matches!(definition, ModuleDef::Function(function) if function.is_test(&self.workspace.db)));
+    pub fn test_fn(&self, name: &str) -> Result<(), RustContractTestFnError> {
+        use RustContractTestFnError::*;
+        let definition = handle!(self.definition(name, |item| matches!(item, ModuleDef::Function(_))), DefinitionFailed);
+        handle_bool!(!matches!(definition, ModuleDef::Function(function) if function.is_test(&self.workspace.db)), TestInvalid, name: name.to_owned());
+        Ok(())
     }
 
-    pub fn enum_declaration(&self, report: &mut ContractReport, expected: &str, unconstrained_fields: &[&str]) {
-        let expected: Item = observe!(report, parse_str(expected));
-        let mut actual = observe!(report, self.item(&expected));
-        if let Item::Enum(item) = &mut actual {
-            item.variants
-                .iter_mut()
-                .filter(|variant| {
-                    unconstrained_fields
-                        .iter()
-                        .any(|name| variant.ident == name)
-                })
-                .for_each(|variant| variant.fields = Fields::Unit);
-        }
-        report.equal("enum declaration", item_shape(actual), item_shape(expected));
+    pub fn enum_declaration(&self, expected: &str, unconstrained_fields: &[&str]) -> Result<(), RustContractEnumDeclarationError> {
+        use RustContractEnumDeclarationError::*;
+        let expected = handle!(parse_declaration(expected, self.krate.edition(&self.workspace.db)), ParseDeclarationFailed);
+        let actual = handle!(self.item(&expected), ItemFailed, expected: expected.syntax().to_string());
+        let (Item::Enum(actual), Item::Enum(expected)) = (&actual, &expected) else {
+            return Err(EnumInvalid {
+                actual: actual.syntax().to_string(),
+                expected: expected.syntax().to_string(),
+            });
+        };
+        handle!(compare_enum_declaration(actual, expected, unconstrained_fields), CompareEnumDeclarationFailed);
+        Ok(())
     }
 }
 
@@ -174,6 +186,78 @@ pub enum RustContractItemError {
     DefinitionFailed { source: RustContractDefinitionError, name: String },
     #[error("source for '{name}' not found")]
     SourceNotFound { name: String },
-    #[error("failed to parse declaration")]
-    ParseStrFailed { source: syn::Error, text: String },
+}
+
+#[derive(Error, Debug)]
+pub enum RustContractDeclarationError {
+    #[error("failed to parse expected declaration")]
+    ParseDeclarationFailed { source: ParseDeclarationError },
+    #[error("failed to get actual declaration")]
+    ItemFailed { source: RustContractItemError, expected: String },
+    #[error("declaration check failed")]
+    CompareDeclarationFailed { source: CompareDeclarationError },
+}
+
+#[derive(Error, Debug)]
+pub enum RustContractRequireDeriveError {
+    #[error("failed to parse required derive path for '{owner}'")]
+    ParsePathFailed { source: ParsePathError, owner: String },
+    #[error("failed to locate type requiring derive '{path}'")]
+    DefinitionFailed { source: RustContractDefinitionError, path: String },
+    #[error("source for '{owner}' not found")]
+    SourceNotFound { owner: String, path: String },
+    #[error("failed to read derives for '{owner}'")]
+    ParseDeriveAttributeFailed { source: ErrVec<ParseDeriveAttributeError>, owner: String, path: String },
+    #[error("'{owner}' must derive '{path}'")]
+    DeriveNotFound { owner: String, path: String, actual: String },
+}
+
+#[derive(Error, Debug)]
+pub enum RustContractMethodError {
+    #[error("failed to parse required method for '{owner}'")]
+    ParseDeclarationFailed { source: ParseDeclarationError, owner: String },
+    #[error("expected a method signature for '{owner}'")]
+    MethodInvalid { owner: String, expected: String },
+    #[error("required method for '{owner}' has no name")]
+    NameNotFound { owner: String, expected: String },
+    #[error("failed to find method owner")]
+    DefinitionFailed { source: RustContractDefinitionError, expected: String },
+    #[error("'{owner}' is not an ADT")]
+    AdtInvalid { owner: String, expected: String },
+    #[error("expected one matching inherent method on '{owner}', found {found}")]
+    MethodNotUniqueInvalid { owner: String, expected: String, found: usize },
+    #[error("source for method on '{owner}' not found")]
+    SourceNotFound { owner: String, expected: String },
+    #[error("method check failed for '{owner}'")]
+    CompareMethodFailed { source: CompareMethodError, owner: String },
+}
+
+#[derive(Error, Debug)]
+pub enum RustContractForbidsTraitsError {
+    #[error("failed to find type")]
+    DefinitionFailed { source: RustContractDefinitionError, forbidden: Vec<String> },
+    #[error("'{owner}' is not an ADT")]
+    AdtInvalid { owner: String, forbidden: Vec<String> },
+    #[error("'{owner}' implements forbidden traits: {found:?}")]
+    TraitsInvalid { owner: String, forbidden: Vec<String>, found: Vec<String> },
+}
+
+#[derive(Error, Debug)]
+pub enum RustContractTestFnError {
+    #[error("failed to find test function")]
+    DefinitionFailed { source: RustContractDefinitionError },
+    #[error("'{name}' is not a test function")]
+    TestInvalid { name: String },
+}
+
+#[derive(Error, Debug)]
+pub enum RustContractEnumDeclarationError {
+    #[error("failed to parse expected enum")]
+    ParseDeclarationFailed { source: ParseDeclarationError },
+    #[error("failed to get actual enum")]
+    ItemFailed { source: RustContractItemError, expected: String },
+    #[error("expected two enum declarations")]
+    EnumInvalid { actual: String, expected: String },
+    #[error("enum declaration check failed")]
+    CompareEnumDeclarationFailed { source: CompareEnumDeclarationError },
 }
