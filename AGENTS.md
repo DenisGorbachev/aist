@@ -2497,6 +2497,9 @@ target = "host-tuple"
 # Give each workspace its own local build directory: one directory shared by all workspaces would serialize their builds and let `cargo clean` in one workspace remove another workspace's artifacts.
 # sccache shares reusable compiler outputs without sharing mutable Cargo state.
 build-dir = "{cargo-cache-home}/build/{workspace-path-hash}"
+
+[net]
+git-fetch-with-cli = true
 ```
 
 ### Cargo.toml
@@ -2509,7 +2512,7 @@ members = ["packages/aist-core", "packages/aist-spec"]
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.95"
+rust-version = "1.98"
 homepage = "https://github.com/DenisGorbachev/aist"
 repository = "https://github.com/DenisGorbachev/aist"
 keywords = []
@@ -2554,16 +2557,20 @@ arithmetic_side_effects = "deny"
 
 [workspace.dependencies]
 aist-core = { version = "0.1.0", path = "packages/aist-core" }
+cargo_metadata = "0.23.1"
 anyhow = "1.0.104"
 clap = { version = "4.6.6", features = ["derive", "env"] }
 errgonomic = { git = "https://github.com/DenisGorbachev/errgonomic" }
-ra_ap_hir = "0.0.349"
-ra_ap_ide_db = "0.0.349"
-ra_ap_load-cargo = "0.0.349"
-ra_ap_proc_macro_api = "0.0.349"
-ra_ap_project_model = "0.0.349"
-ra_ap_syntax = "0.0.349"
-ra_ap_vfs = "0.0.349"
+quote = "1.0.47"
+syn = { version = "2", features = ["full", "extra-traits"] }
+toml = "1.1.8"
+ra_ap_hir = "0.0.358"
+ra_ap_ide_db = "0.0.358"
+ra_ap_load-cargo = "0.0.358"
+ra_ap_proc_macro_api = "0.0.358"
+ra_ap_project_model = "0.0.358"
+ra_ap_syntax = "0.0.358"
+ra_ap_vfs = "0.0.358"
 save-load = { git = "https://github.com/DenisGorbachev/save-load", features = ["clap", "serde_json", "serde_yaml", "toml"] }
 serde = { version = "1.0.229", features = ["derive"] }
 thiserror = "2.0.17"
@@ -2622,15 +2629,20 @@ workspace = true
 
 [dependencies]
 anyhow.workspace = true
+cargo_metadata.workspace = true
 errgonomic.workspace = true
+quote.workspace = true
 ra_ap_hir.workspace = true
 ra_ap_ide_db.workspace = true
 ra_ap_load-cargo.workspace = true
 ra_ap_proc_macro_api.workspace = true
 ra_ap_project_model.workspace = true
+ra_ap_syntax.workspace = true
 ra_ap_vfs.workspace = true
 serde.workspace = true
+syn.workspace = true
 thiserror.workspace = true
+toml.workspace = true
 ```
 
 ### packages/aist-spec/Cargo.toml
