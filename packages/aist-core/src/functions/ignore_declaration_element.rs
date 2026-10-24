@@ -13,9 +13,10 @@ pub fn ignore_declaration_element(element: &SyntaxElement, root: &SyntaxNode, un
         return true;
     }
     match element.kind() {
-        ATTR => {
+        ATTR | DOC_COMMENT => {
             if parent == *root {
-                return !matches!(root.kind(), MACRO_RULES | MACRO_DEF)
+                return element.kind() == DOC_COMMENT
+                    || !matches!(root.kind(), MACRO_RULES | MACRO_DEF)
                     || element
                         .as_node()
                         .and_then(|node| Attr::cast(node.clone()))

@@ -2,6 +2,9 @@ use crate::{iter_eq_by, token_trees_equal};
 use ra_ap_syntax::{NodeOrToken, SyntaxElement, SyntaxKind, SyntaxNode};
 
 pub fn syntax_equal(actual: &SyntaxNode, expected: &SyntaxNode, ignore_actual: &impl Fn(&SyntaxElement) -> bool, ignore_expected: &impl Fn(&SyntaxElement) -> bool) -> bool {
+    if matches!((actual.kind(), expected.kind()), (SyntaxKind::DOC_COMMENT, SyntaxKind::ATTR) | (SyntaxKind::ATTR, SyntaxKind::DOC_COMMENT)) {
+        return token_trees_equal(actual, expected);
+    }
     if actual.kind() != expected.kind() {
         return false;
     }
