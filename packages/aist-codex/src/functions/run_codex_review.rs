@@ -24,14 +24,7 @@ pub async fn run_codex_review(reviewer: &CodexReviewer, policy_root: &Path, snap
     let input = handle!(File::open(&prompt_path), OpenFailed, path: prompt_path);
     let mut command = Command::new(&reviewer.executable);
     command
-        .args([
-            "exec",
-            "--ephemeral",
-            "--skip-git-repo-check",
-            "--color",
-            "never",
-            "--model",
-        ])
+        .args(["exec", "--ephemeral", "--color", "never", "--model"])
         .arg(&reviewer.model)
         .current_dir(policy_root)
         .arg("--output-schema")
