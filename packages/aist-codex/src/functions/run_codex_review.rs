@@ -1,24 +1,24 @@
-use crate::{CodexReviewer, ReviewSnapshot, ReviewVerdict, ReviewVerdictValidateError};
-use errgonomic::{handle, handle_bool};
+use crate::{CodexReviewer, CommandOutputError, ReviewSnapshot, ReviewVerdict, ReviewVerdictValidateError, command_output};
+use errgonomic::handle;
 use serde_json::{Error as JsonError, from_slice};
 use std::collections::BTreeMap;
 use std::fs::File;
 use std::io;
-use std::path::PathBuf;
-use std::process::{ExitStatus, Stdio};
+use std::path::{Path, PathBuf};
+use std::process::Stdio;
 use tempfile::tempdir;
 use thiserror::Error;
 use tokio::fs::{read, write};
 use tokio::process::Command;
-use tokio::time::{error::Elapsed, timeout};
 use toml::Value;
 
-pub async fn run_codex_review(reviewer: &CodexReviewer, snapshot: &ReviewSnapshot, settings: &BTreeMap<String, Value>, prompt: &str, schema: &str) -> Result<ReviewVerdict, RunCodexReviewError> {
+pub async fn run_codex_review(reviewer: &CodexReviewer, policy_root: &Path, snapshot: &ReviewSnapshot, settings: &BTreeMap<String, Value>, prompt: &str, schema: &str) -> Result<ReviewVerdict, RunCodexReviewError> {
     use RunCodexReviewError::*;
     let directory = handle!(tempdir(), TempdirFailed);
     let prompt_path = directory.path().join("prompt.txt");
     let schema_path = directory.path().join("schema.json");
     let output_path = directory.path().join("verdict.json");
+    let prompt = format!("{prompt}\nCaptured snapshot directory: {}\n", snapshot.directory().display());
     handle!(write(&prompt_path, prompt).await, WritePromptFailed, path: prompt_path.to_owned());
     handle!(write(&schema_path, schema).await, WriteSchemaFailed, path: schema_path.to_owned());
     let input = handle!(File::open(&prompt_path), OpenFailed, path: prompt_path);
@@ -26,8 +26,6 @@ pub async fn run_codex_review(reviewer: &CodexReviewer, snapshot: &ReviewSnapsho
     command
         .args([
             "exec",
-            "--ignore-user-config",
-            "--ignore-rules",
             "--ephemeral",
             "--skip-git-repo-check",
             "--color",
@@ -35,9 +33,7 @@ pub async fn run_codex_review(reviewer: &CodexReviewer, snapshot: &ReviewSnapsho
             "--model",
         ])
         .arg(&reviewer.model)
-        .arg("--cd")
-        .arg(snapshot.directory())
-        .current_dir(snapshot.directory())
+        .current_dir(policy_root)
         .arg("--output-schema")
         .arg(&schema_path)
         .arg("--output-last-message")
@@ -50,9 +46,7 @@ pub async fn run_codex_review(reviewer: &CodexReviewer, snapshot: &ReviewSnapsho
         command.arg("--config").arg(format!("{key}={value}"));
     });
     command.arg("-");
-    let result = handle!(timeout(reviewer.timeout, command.output()).await, TimeoutFailed);
-    let output = handle!(result, OutputFailed);
-    handle_bool!(!output.status.success(), CommandFailed, status: output.status, stderr: String::from_utf8_lossy(&output.stderr).into_owned());
+    handle!(command_output(command, reviewer.timeout).await, CommandOutputFailed);
     let bytes = handle!(read(&output_path).await, ReadFailed, path: output_path);
     let verdict: ReviewVerdict = handle!(from_slice(&bytes), FromSliceFailed, bytes);
     handle!(verdict.validate(snapshot), ValidateFailed, verdict);
@@ -69,12 +63,8 @@ pub enum RunCodexReviewError {
     WriteSchemaFailed { source: io::Error, path: PathBuf },
     #[error("failed to open review prompt '{path}'", path = path.display())]
     OpenFailed { source: io::Error, path: PathBuf },
-    #[error("Codex review timed out")]
-    TimeoutFailed { source: Elapsed },
-    #[error("failed to launch Codex review")]
-    OutputFailed { source: io::Error },
-    #[error("Codex review exited with {status}: {stderr}")]
-    CommandFailed { status: ExitStatus, stderr: String },
+    #[error("Codex review command failed")]
+    CommandOutputFailed { source: Box<CommandOutputError> },
     #[error("failed to read Codex verdict '{path}'", path = path.display())]
     ReadFailed { source: io::Error, path: PathBuf },
     #[error("Codex verdict does not match the response schema")]

@@ -2643,7 +2643,7 @@ workspace = true
 [dependencies]
 cargo_metadata.workspace = true
 clap.workspace = true
-errgonomic.workspace = true
+errgonomic = { workspace = true, features = ["process"] }
 futures.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -2661,7 +2661,7 @@ toml.workspace = true
 name = "aist-core"
 version.workspace = true
 edition.workspace = true
-rust-version = "1.93.1"
+rust-version.workspace = true
 homepage.workspace = true
 repository.workspace = true
 keywords.workspace = true
@@ -2675,26 +2675,22 @@ title = ""
 workspace = true
 
 [dependencies]
-anyhow = { workspace = true, optional = true }
-cargo_metadata = { workspace = true, optional = true }
+anyhow = { workspace = true }
+cargo_metadata = { workspace = true }
 errgonomic.workspace = true
-ra_ap_hir = { workspace = true, optional = true }
-ra_ap_ide_db = { workspace = true, optional = true }
-ra_ap_load-cargo = { workspace = true, optional = true }
-ra_ap_proc_macro_api = { workspace = true, optional = true }
-ra_ap_project_model = { workspace = true, optional = true }
-ra_ap_span = { workspace = true, optional = true }
-ra_ap_syntax = { workspace = true, optional = true }
-ra_ap_syntax-bridge = { workspace = true, optional = true }
-ra_ap_tt = { workspace = true, optional = true }
-ra_ap_vfs = { workspace = true, optional = true }
-serde = { workspace = true, optional = true }
+ra_ap_hir = { workspace = true }
+ra_ap_ide_db = { workspace = true }
+ra_ap_load-cargo = { workspace = true }
+ra_ap_proc_macro_api = { workspace = true }
+ra_ap_project_model = { workspace = true }
+ra_ap_span = { workspace = true }
+ra_ap_syntax = { workspace = true }
+ra_ap_syntax-bridge = { workspace = true }
+ra_ap_tt = { workspace = true }
+ra_ap_vfs = { workspace = true }
+serde = { workspace = true }
 thiserror.workspace = true
-toml = { workspace = true, optional = true }
-
-[features]
-default = ["rust"]
-rust = ["dep:anyhow", "dep:cargo_metadata", "dep:ra_ap_hir", "dep:ra_ap_ide_db", "dep:ra_ap_load-cargo", "dep:ra_ap_proc_macro_api", "dep:ra_ap_project_model", "dep:ra_ap_span", "dep:ra_ap_syntax", "dep:ra_ap_syntax-bridge", "dep:ra_ap_tt", "dep:ra_ap_vfs", "dep:serde", "dep:toml"]
+toml = { workspace = true }
 ```
 
 ### packages/aist-spec/Cargo.toml
@@ -2748,7 +2744,6 @@ pub use types::*;
 
 mod functions;
 pub use functions::*;
-mod macros;
 ```
 
 ### packages/aist-spec/src/lib.rs

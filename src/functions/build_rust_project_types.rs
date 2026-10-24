@@ -14,12 +14,7 @@ pub fn build_rust_project_types(declarations: impl IntoIterator<Item = LocatedRu
             types_by_path
         });
     types_by_path.values_mut().for_each(|types| {
-        types.sort_unstable_by(|left, right| {
-            left.byte_offset
-                .cmp(&right.byte_offset)
-                .then_with(|| left.kind.cmp(&right.kind))
-                .then_with(|| left.name.cmp(&right.name))
-        });
+        types.sort_unstable();
         types.dedup();
     });
     let files = types_by_path

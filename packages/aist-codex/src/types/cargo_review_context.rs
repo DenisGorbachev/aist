@@ -14,5 +14,5 @@ pub struct CargoReviewContext<'a> {
     pub rustc: String,
     pub cargo: String,
     pub configuration: BTreeMap<PathBuf, Fingerprint>,
-    pub environment: BTreeMap<&'static str, Option<OsString>>,
+    pub environment: BTreeMap<OsString, Fingerprint>,
 }

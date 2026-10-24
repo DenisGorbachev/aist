@@ -22,3 +22,6 @@ mod review_verdict;
 pub use review_verdict::*;
 mod registry_checksum;
 pub use registry_checksum::*;
+
+mod review_source;
+pub use review_source::*;

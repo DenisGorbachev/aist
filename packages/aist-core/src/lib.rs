@@ -5,4 +5,3 @@ pub use types::*;
 
 mod functions;
 pub use functions::*;
-mod macros;

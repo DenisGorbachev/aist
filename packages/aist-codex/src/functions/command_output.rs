@@ -1,29 +1,26 @@
-use errgonomic::{handle, handle_bool};
-use std::ffi::{OsStr, OsString};
+use errgonomic::{handle, handle_bool, render_command};
 use std::io;
-use std::path::{Path, PathBuf};
-use std::process::ExitStatus;
+use std::process::{Command, ExitStatus};
 use std::time::Duration;
 use thiserror::Error;
-use tokio::process::Command;
+use tokio::process::Command as TokioCommand;
 use tokio::time::{error::Elapsed, timeout};
 
-pub async fn command_output(program: &OsStr, args: &[OsString], directory: &Path, duration: Duration) -> Result<Vec<u8>, CommandOutputError> {
+pub async fn command_output(mut command: TokioCommand, duration: Duration) -> Result<Vec<u8>, CommandOutputError> {
     use CommandOutputError::*;
-    let mut command = Command::new(program);
-    command.args(args).current_dir(directory).kill_on_drop(true);
-    let result = handle!(timeout(duration, command.output()).await, TimeoutFailed, program: program.to_os_string(), args: args.to_vec(), directory: directory.to_path_buf());
-    let output = handle!(result, OutputFailed, program: program.to_os_string(), args: args.to_vec(), directory: directory.to_path_buf());
-    handle_bool!(!output.status.success(), CommandFailed, program: program.to_os_string(), args: args.to_vec(), directory: directory.to_path_buf(), status: output.status, stderr: String::from_utf8_lossy(&output.stderr).into_owned());
+    command.kill_on_drop(true);
+    let result = handle!(timeout(duration, command.output()).await, TimeoutFailed, command: command.into_std());
+    let output = handle!(result, OutputFailed, command: command.into_std());
+    handle_bool!(!output.status.success(), CommandFailed, command: command.into_std(), status: output.status, stderr: String::from_utf8_lossy(&output.stderr).into_owned());
     Ok(output.stdout)
 }
 
 #[derive(Error, Debug)]
 pub enum CommandOutputError {
-    #[error("command timed out in '{directory}'", directory = directory.display())]
-    TimeoutFailed { source: Elapsed, program: OsString, args: Vec<OsString>, directory: PathBuf },
-    #[error("failed to execute command in '{directory}'", directory = directory.display())]
-    OutputFailed { source: io::Error, program: OsString, args: Vec<OsString>, directory: PathBuf },
-    #[error("command exited with {status}: {stderr}")]
-    CommandFailed { program: OsString, args: Vec<OsString>, directory: PathBuf, status: ExitStatus, stderr: String },
+    #[error("command timed out: `{command}`", command = render_command(command))]
+    TimeoutFailed { source: Elapsed, command: Box<Command> },
+    #[error("failed to execute `{command}`", command = render_command(command))]
+    OutputFailed { source: io::Error, command: Box<Command> },
+    #[error("`{command}` exited with {status}: {stderr}", command = render_command(command))]
+    CommandFailed { command: Box<Command>, status: ExitStatus, stderr: String },
 }

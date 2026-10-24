@@ -1,4 +1,4 @@
-use crate::{CanonicalJsonError, CopyReviewSourceError, Fingerprint, VerifyFingerprintError, canonical_json, copy_review_source, verify_fingerprint};
+use crate::{CanonicalJsonError, CopyReviewSourceError, Fingerprint, ReviewSource, VerifyFingerprintError, canonical_json, copy_review_source, verify_fingerprint};
 use errgonomic::{ErrVec, handle, handle_iter};
 use futures::{StreamExt, stream};
 use serde::Serialize;
@@ -12,7 +12,7 @@ use tokio::fs::write;
 #[derive(Debug)]
 pub struct ReviewSnapshot {
     directory: TempDir,
-    files: BTreeMap<PathBuf, Fingerprint>,
+    files: BTreeMap<PathBuf, ReviewSource>,
     fingerprint: Fingerprint,
 }
 
@@ -46,7 +46,7 @@ impl ReviewSnapshot {
         self.directory.path()
     }
 
-    pub fn files(&self) -> &BTreeMap<PathBuf, Fingerprint> {
+    pub fn files(&self) -> &BTreeMap<PathBuf, ReviewSource> {
         &self.files
     }
 
@@ -57,7 +57,7 @@ impl ReviewSnapshot {
     pub async fn verify(&self) -> Result<(), ReviewSnapshotVerifyError> {
         use ReviewSnapshotVerifyError::*;
         let results = stream::iter(&self.files)
-            .then(|(name, fingerprint)| async move { verify_fingerprint(&self.directory.path().join("sources").join(name), *fingerprint).await })
+            .then(|(name, fingerprint)| async move { verify_fingerprint(&self.directory.path().join("sources").join(name), fingerprint.fingerprint).await })
             .collect::<Vec<_>>()
             .await;
         handle_iter!(results.into_iter(), VerifyFingerprintFailed);

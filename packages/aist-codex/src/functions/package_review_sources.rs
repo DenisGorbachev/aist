@@ -3,13 +3,14 @@ use cargo_metadata::Package;
 use errgonomic::{handle, handle_opt};
 use serde_json::{Error as JsonError, from_slice};
 use std::collections::BTreeMap;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::io;
 use std::path::PathBuf;
 use std::string::FromUtf8Error;
 use std::time::Duration;
 use thiserror::Error;
 use tokio::fs::read;
+use tokio::process::Command;
 
 pub async fn package_review_sources(package: &Package, duration: Duration) -> Result<BTreeMap<PathBuf, PathBuf>, PackageReviewSourcesError> {
     use PackageReviewSourcesError::*;
@@ -36,7 +37,9 @@ pub async fn package_review_sources(package: &Package, duration: Duration) -> Re
         .map(OsString::from)
         .chain([manifest.into()])
         .collect();
-        let bytes = handle!(command_output(OsStr::new("cargo"), &args, directory, duration).await, CommandOutputFailed, manifest: manifest.to_path_buf());
+        let mut command = Command::new("cargo");
+        command.args(&args).current_dir(directory);
+        let bytes = handle!(command_output(command, duration).await, CommandOutputFailed, manifest: manifest.to_path_buf());
         let list = handle!(String::from_utf8(bytes), FromUtf8Failed, manifest: manifest.to_path_buf());
         list.lines()
             .filter(|name| !matches!(*name, ".cargo_vcs_info.json" | "Cargo.lock" | "Cargo.toml.orig"))

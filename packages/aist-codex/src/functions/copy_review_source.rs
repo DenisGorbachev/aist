@@ -1,11 +1,11 @@
-use crate::Fingerprint;
+use crate::ReviewSource;
 use errgonomic::{handle, handle_bool, handle_opt};
 use std::io;
 use std::path::{Component, Path, PathBuf};
 use thiserror::Error;
 use tokio::fs::{create_dir_all, read, write};
 
-pub async fn copy_review_source(directory: &Path, name: &Path, source: &Path) -> Result<Fingerprint, CopyReviewSourceError> {
+pub async fn copy_review_source(directory: &Path, name: &Path, source: &Path) -> Result<ReviewSource, CopyReviewSourceError> {
     use CopyReviewSourceError::*;
     handle_bool!(name.file_name().is_none() || !name.components().all(|part| matches!(part, Component::Normal(_))), NameInvalid, name: name.to_path_buf());
     let destination = directory.join("sources").join(name);
@@ -13,7 +13,7 @@ pub async fn copy_review_source(directory: &Path, name: &Path, source: &Path) ->
     handle!(create_dir_all(parent).await, CreateDirAllFailed, path: parent.to_path_buf());
     let bytes = handle!(read(source).await, ReadFailed, path: source.to_path_buf());
     handle!(write(&destination, &bytes).await, WriteFailed, path: destination);
-    Ok(Fingerprint::from(bytes.as_slice()))
+    Ok(ReviewSource::from(bytes.as_slice()))
 }
 
 #[derive(Error, Debug)]

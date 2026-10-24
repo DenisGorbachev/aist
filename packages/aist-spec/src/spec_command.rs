@@ -30,7 +30,11 @@ impl SpecCommand {
         let workspace_info = handle!(WorkspaceInfo::try_from(project_root.as_path()), TryFromFailed, project_root);
         let report = SpecReport::new(&workspace_info);
         handle!(output_format.writeln_one(&mut stdout().lock(), &report), WritelnOneFailed, output_format, report);
-        Ok(ExitCode::SUCCESS)
+        Ok(if report.aist.as_ref().is_ok_and(|aist| aist.command.is_ok()) {
+            ExitCode::SUCCESS
+        } else {
+            ExitCode::FAILURE
+        })
     }
 }
 

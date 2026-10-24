@@ -1,6 +1,6 @@
-use crate::{CompareDeclarationError, CompareEnumDeclarationError, CompareMethodError, ParseDeclarationError, ParseDeriveAttributeError, ParsePathError, WorkspaceInfo, WorkspaceInfoFindCrateError, compare_declaration, compare_enum_declaration, compare_method, definition_source, item_name, parse_declaration, parse_derive_attribute, parse_path, syntax_equal};
+use crate::{CompareDeclarationError, CompareEnumDeclarationError, CompareMethodError, GetAdtError, ParseDeclarationError, ParseDeriveAttributeError, ParsePathError, ResolveTraitError, WorkspaceInfo, WorkspaceInfoFindCrateError, compare_declaration, compare_enum_declaration, compare_method, definition_source, get_adt, item_name, parse_declaration, parse_derive_attribute, parse_path, resolve_trait, syntax_equal};
 use errgonomic::{ErrVec, handle, handle_bool, handle_iter, handle_opt};
-use ra_ap_hir::{AssocItem, Crate, HasSource, Impl, ModuleDef, attach_db};
+use ra_ap_hir::{Adt, AssocItem, Crate, HasSource, Impl, ModuleDef, attach_db};
 use ra_ap_syntax::{
     AstNode,
     ast::{self, HasName, Item},
@@ -44,7 +44,7 @@ impl<'a> RustContract<'a> {
     pub fn item(&self, expected: &Item) -> Result<Item, RustContractItemError> {
         use RustContractItemError::*;
         let name = handle_opt!(item_name(expected), ItemKindInvalid, expected: expected.syntax().to_string());
-        let definition = handle!(self.definition(&name, |definition| matches!((expected, definition), (Item::Struct(_) | Item::Enum(_), ModuleDef::Adt(_)) | (Item::TypeAlias(_), ModuleDef::TypeAlias(_)) | (Item::Trait(_), ModuleDef::Trait(_)) | (Item::MacroRules(_) | Item::MacroDef(_), ModuleDef::Macro(_)))), DefinitionFailed, name);
+        let definition = handle!(self.definition(&name, |definition| matches!((expected, definition), (Item::Struct(_), ModuleDef::Adt(Adt::Struct(_))) | (Item::Enum(_), ModuleDef::Adt(Adt::Enum(_))) | (Item::TypeAlias(_), ModuleDef::TypeAlias(_)) | (Item::Trait(_), ModuleDef::Trait(_)) | (Item::MacroRules(_) | Item::MacroDef(_), ModuleDef::Macro(_)))), DefinitionFailed, name);
         Ok(handle_opt!(definition_source(definition, &self.workspace.db), SourceNotFound, name))
     }
 
@@ -86,13 +86,7 @@ impl<'a> RustContract<'a> {
             });
         };
         let name = handle_opt!(expected_fn.name(), NameNotFound, owner: owner.to_owned(), expected: expected.to_owned());
-        let definition = handle!(self.definition(owner, |item| matches!(item, ModuleDef::Adt(_))), DefinitionFailed, expected: expected.to_owned());
-        let ModuleDef::Adt(adt) = definition else {
-            return Err(AdtInvalid {
-                owner: owner.to_owned(),
-                expected: expected.to_owned(),
-            });
-        };
+        let adt = handle!(get_adt(owner, &self.krate, &self.workspace.db), GetAdtFailed, expected: expected.to_owned());
         let db = &self.workspace.db;
         let methods = attach_db(db, || {
             Impl::all_for_type(db, adt.ty(db))
@@ -119,23 +113,20 @@ impl<'a> RustContract<'a> {
 
     pub fn forbids_traits(&self, owner: &str, forbidden: &[&str]) -> Result<(), RustContractForbidsTraitsError> {
         use RustContractForbidsTraitsError::*;
-        let forbidden: Vec<_> = forbidden.iter().map(|name| (*name).to_owned()).collect();
-        let definition = handle!(self.definition(owner, |item| matches!(item, ModuleDef::Adt(_))), DefinitionFailed, forbidden);
-        let ModuleDef::Adt(adt) = definition else {
-            return Err(AdtInvalid {
-                owner: owner.to_owned(),
-                forbidden,
-            });
-        };
         let db = &self.workspace.db;
+        let forbidden: Vec<_> = forbidden.iter().map(|path| (*path).to_owned()).collect();
+        let adt = handle!(get_adt(owner, &self.krate, db), GetAdtFailed, forbidden);
+        let traits = handle_iter!(forbidden.iter().map(|path| resolve_trait(&self.krate.root_module(db), db, path)), ResolveTraitFailed, owner: owner.to_owned());
         let found = attach_db(db, || {
-            Impl::all_for_type(db, adt.ty(db))
+            let implemented = Impl::all_for_type(db, adt.ty(db))
                 .into_iter()
-                .filter_map(|item| {
-                    item.trait_(db)
-                        .map(|trait_| trait_.name(db).as_str().to_owned())
-                })
-                .filter(|name| forbidden.contains(name))
+                .filter_map(|item| item.trait_(db))
+                .collect::<Vec<_>>();
+            traits
+                .iter()
+                .zip(&forbidden)
+                .filter(|(trait_, _)| implemented.contains(trait_))
+                .map(|(_, path)| path.to_owned())
                 .collect::<Vec<_>>()
         });
         handle_bool!(!found.is_empty(), TraitsInvalid, owner: owner.to_owned(), forbidden, found);
@@ -145,7 +136,7 @@ impl<'a> RustContract<'a> {
     pub fn test_fn(&self, name: &str) -> Result<(), RustContractTestFnError> {
         use RustContractTestFnError::*;
         let definition = handle!(self.definition(name, |item| matches!(item, ModuleDef::Function(_))), DefinitionFailed);
-        handle_bool!(!matches!(definition, ModuleDef::Function(function) if function.is_test(&self.workspace.db)), TestInvalid, name: name.to_owned());
+        handle_bool!(!matches!(definition, ModuleDef::Function(function) if function.is_test(&self.workspace.db) && !function.is_ignore(&self.workspace.db)), TestInvalid, name: name.to_owned());
         Ok(())
     }
 
@@ -221,9 +212,7 @@ pub enum RustContractMethodError {
     #[error("required method for '{owner}' has no name")]
     NameNotFound { owner: String, expected: String },
     #[error("failed to find method owner")]
-    DefinitionFailed { source: RustContractDefinitionError, expected: String },
-    #[error("'{owner}' is not an ADT")]
-    AdtInvalid { owner: String, expected: String },
+    GetAdtFailed { source: GetAdtError, expected: String },
     #[error("expected one matching inherent method on '{owner}', found {found}")]
     MethodNotUniqueInvalid { owner: String, expected: String, found: usize },
     #[error("source for method on '{owner}' not found")]
@@ -235,9 +224,9 @@ pub enum RustContractMethodError {
 #[derive(Error, Debug)]
 pub enum RustContractForbidsTraitsError {
     #[error("failed to find type")]
-    DefinitionFailed { source: RustContractDefinitionError, forbidden: Vec<String> },
-    #[error("'{owner}' is not an ADT")]
-    AdtInvalid { owner: String, forbidden: Vec<String> },
+    GetAdtFailed { source: GetAdtError, forbidden: Vec<String> },
+    #[error("failed to resolve forbidden traits for '{owner}'")]
+    ResolveTraitFailed { source: ErrVec<ResolveTraitError>, owner: String },
     #[error("'{owner}' implements forbidden traits: {found:?}")]
     TraitsInvalid { owner: String, forbidden: Vec<String>, found: Vec<String> },
 }
@@ -246,7 +235,7 @@ pub enum RustContractForbidsTraitsError {
 pub enum RustContractTestFnError {
     #[error("failed to find test function")]
     DefinitionFailed { source: RustContractDefinitionError },
-    #[error("'{name}' is not a test function")]
+    #[error("'{name}' is not an enabled test function")]
     TestInvalid { name: String },
 }
 
