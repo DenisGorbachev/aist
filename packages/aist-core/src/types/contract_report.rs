@@ -85,6 +85,17 @@ impl ContractReport {
         !self.checks.is_empty() && self.checks.iter().all(|check| check.result.is_ok())
     }
 
+    pub fn into_result(self) -> Result<(), ContractReportIntoResultError> {
+        use ContractReportIntoResultError::*;
+        if self.passed() {
+            Ok(())
+        } else {
+            Err(ChecksFailed {
+                report: Box::new(self),
+            })
+        }
+    }
+
     pub fn print(&self) -> ExitCode {
         exit_result(
             self.write(stdout().lock())
@@ -110,4 +121,10 @@ impl ContractReport {
 pub enum ContractReportWriteError {
     #[error("failed to write contract report")]
     WriteFailed { source: io::Error },
+}
+
+#[derive(ThisError, Debug)]
+pub enum ContractReportIntoResultError {
+    #[error("contract contains failed or missing checks")]
+    ChecksFailed { report: Box<ContractReport> },
 }

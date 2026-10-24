@@ -1,0 +1,30 @@
+[package]
+name = "aist-codex"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+homepage.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+exclude.workspace = true
+
+[package.metadata.details]
+title = ""
+readme.generate = false
+
+[lints]
+workspace = true
+
+[dependencies]
+cargo_metadata.workspace = true
+clap.workspace = true
+errgonomic.workspace = true
+futures.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+tempfile.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["fs", "io-util", "process", "sync", "time"] }
+toml.workspace = true

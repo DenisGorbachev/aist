@@ -3,7 +3,7 @@ use errgonomic::{handle, handle_bool, handle_opt};
 use quote::{ToTokens, format_ident, quote};
 use ra_ap_hir::{AssocItem, Crate, HasSource, Impl, ModuleDef, attach_db};
 use ra_ap_syntax::AstNode;
-use syn::{ImplItemFn, Item, ItemStruct, Meta, TraitItemFn, Visibility, parse_str};
+use syn::{Fields, ImplItemFn, Item, ItemStruct, Meta, TraitItemFn, Visibility, parse_str};
 use thiserror::Error;
 
 pub struct RustContract<'a> {
@@ -128,6 +128,27 @@ impl<'a> RustContract<'a> {
         forbidden
             .iter()
             .for_each(|name| report.require(format!("{owner}/does not implement {name}"), !traits.iter().any(|actual| actual == name)));
+    }
+
+    pub fn test_fn(&self, report: &mut ContractReport, name: &str) {
+        let definition = observe!(report, self.definition(name, |item| matches!(item, ModuleDef::Function(_))));
+        report.require(format!("{name}/test function"), matches!(definition, ModuleDef::Function(function) if function.is_test(&self.workspace.db)));
+    }
+
+    pub fn enum_declaration(&self, report: &mut ContractReport, expected: &str, unconstrained_fields: &[&str]) {
+        let expected: Item = observe!(report, parse_str(expected));
+        let mut actual = observe!(report, self.item(&expected));
+        if let Item::Enum(item) = &mut actual {
+            item.variants
+                .iter_mut()
+                .filter(|variant| {
+                    unconstrained_fields
+                        .iter()
+                        .any(|name| variant.ident == name)
+                })
+                .for_each(|variant| variant.fields = Fields::Unit);
+        }
+        report.equal("enum declaration", item_shape(actual), item_shape(expected));
     }
 }
 

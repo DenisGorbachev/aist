@@ -2507,7 +2507,7 @@ git-fetch-with-cli = true
 ```toml
 [workspace]
 resolver = "3"
-members = ["packages/aist-core", "packages/aist-spec"]
+members = ["packages/aist-core", "packages/aist-spec", "packages/aist-codex"]
 
 [workspace.package]
 version = "0.1.0"
@@ -2556,6 +2556,10 @@ absolute_paths = "deny"
 arithmetic_side_effects = "deny"
 
 [workspace.dependencies]
+futures = "0.3.34"
+tempfile = "3.27.0"
+sha2 = "0.11.1"
+serde_json = "1.0.154"
 aist-core = { version = "0.1.0", path = "packages/aist-core" }
 cargo_metadata = "0.23.1"
 anyhow = "1.0.104"
@@ -2607,6 +2611,41 @@ thiserror.workspace = true
 tokio.workspace = true
 ```
 
+### packages/aist-codex/Cargo.toml
+
+```toml
+[package]
+name = "aist-codex"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+homepage.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+exclude.workspace = true
+
+[package.metadata.details]
+title = ""
+readme.generate = false
+
+[lints]
+workspace = true
+
+[dependencies]
+cargo_metadata.workspace = true
+clap.workspace = true
+errgonomic.workspace = true
+futures.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+tempfile.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["fs", "io-util", "process", "sync", "time"] }
+toml.workspace = true
+```
+
 ### packages/aist-core/Cargo.toml
 
 ```toml
@@ -2614,7 +2653,7 @@ tokio.workspace = true
 name = "aist-core"
 version.workspace = true
 edition.workspace = true
-rust-version.workspace = true
+rust-version = "1.93.1"
 homepage.workspace = true
 repository.workspace = true
 keywords.workspace = true
@@ -2628,21 +2667,25 @@ title = ""
 workspace = true
 
 [dependencies]
-anyhow.workspace = true
-cargo_metadata.workspace = true
+anyhow = { workspace = true, optional = true }
+cargo_metadata = { workspace = true, optional = true }
 errgonomic.workspace = true
-quote.workspace = true
-ra_ap_hir.workspace = true
-ra_ap_ide_db.workspace = true
-ra_ap_load-cargo.workspace = true
-ra_ap_proc_macro_api.workspace = true
-ra_ap_project_model.workspace = true
-ra_ap_syntax.workspace = true
-ra_ap_vfs.workspace = true
-serde.workspace = true
-syn.workspace = true
+quote = { workspace = true, optional = true }
+ra_ap_hir = { workspace = true, optional = true }
+ra_ap_ide_db = { workspace = true, optional = true }
+ra_ap_load-cargo = { workspace = true, optional = true }
+ra_ap_proc_macro_api = { workspace = true, optional = true }
+ra_ap_project_model = { workspace = true, optional = true }
+ra_ap_syntax = { workspace = true, optional = true }
+ra_ap_vfs = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+syn = { workspace = true, optional = true }
 thiserror.workspace = true
-toml.workspace = true
+toml = { workspace = true, optional = true }
+
+[features]
+default = ["rust"]
+rust = ["dep:anyhow", "dep:cargo_metadata", "dep:quote", "dep:ra_ap_hir", "dep:ra_ap_ide_db", "dep:ra_ap_load-cargo", "dep:ra_ap_proc_macro_api", "dep:ra_ap_project_model", "dep:ra_ap_syntax", "dep:ra_ap_vfs", "dep:serde", "dep:syn", "dep:toml"]
 ```
 
 ### packages/aist-spec/Cargo.toml
@@ -2675,6 +2718,15 @@ save-load.workspace = true
 serde.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
+```
+
+### packages/aist-codex/src/lib.rs
+
+```rust
+mod types;
+pub use types::*;
+mod functions;
+pub use functions::*;
 ```
 
 ### packages/aist-core/src/lib.rs

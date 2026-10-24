@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "rationale", "evidence"],
+  "properties": {
+    "status": { "type": "string", "enum": ["satisfied", "violated", "inconclusive"] },
+    "rationale": { "type": "string" },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "line", "explanation"],
+        "properties": {
+          "path": { "type": "string" },
+          "line": { "type": "integer", "minimum": 1 },
+          "explanation": { "type": "string" }
+        }
+      }
+    }
+  }
+}

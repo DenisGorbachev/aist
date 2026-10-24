@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["packages/aist-core", "packages/aist-spec"]
+members = ["packages/aist-core", "packages/aist-spec", "packages/aist-codex"]
 
 [workspace.package]
 version = "0.1.0"
@@ -49,6 +49,10 @@ absolute_paths = "deny"
 arithmetic_side_effects = "deny"
 
 [workspace.dependencies]
+futures = "0.3.34"
+tempfile = "3.27.0"
+sha2 = "0.11.1"
+serde_json = "1.0.154"
 aist-core = { version = "0.1.0", path = "packages/aist-core" }
 cargo_metadata = "0.23.1"
 anyhow = "1.0.104"
