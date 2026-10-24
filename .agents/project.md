@@ -6,10 +6,17 @@
   - `clap`
   - `serde`
   - `save-load`
+- Must not contain dependencies:
+  - `syn`
+  - `quote`
 - Must define a [aist](#aist-package) as a root package
 - Must define workspace packages
   - [aist-core](#aist-core-package)
   - [aist-spec](#aist-spec-package)
+
+Notes:
+
+- `syn` and `quote` are banned because `ra_*` crates already provide functions that return syntactic information.
 
 ## aist package
 

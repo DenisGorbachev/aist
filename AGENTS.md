@@ -701,10 +701,17 @@ Proxy command example:
   - `clap`
   - `serde`
   - `save-load`
+- Must not contain dependencies:
+  - `syn`
+  - `quote`
 - Must define a [aist](#aist-package) as a root package
 - Must define workspace packages
   - [aist-core](#aist-core-package)
   - [aist-spec](#aist-spec-package)
+
+Notes:
+
+- `syn` and `quote` are banned because `ra_*` crates already provide functions that return syntactic information.
 
 #### aist package
 
@@ -2512,7 +2519,7 @@ members = ["packages/aist-core", "packages/aist-spec", "packages/aist-codex"]
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.98"
+rust-version = "1.99"
 homepage = "https://github.com/DenisGorbachev/aist"
 repository = "https://github.com/DenisGorbachev/aist"
 keywords = []

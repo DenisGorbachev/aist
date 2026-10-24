@@ -5,7 +5,7 @@ members = ["packages/aist-core", "packages/aist-spec", "packages/aist-codex"]
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.98"
+rust-version = "1.99"
 homepage = "https://github.com/DenisGorbachev/aist"
 repository = "https://github.com/DenisGorbachev/aist"
 keywords = []
