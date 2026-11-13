@@ -140,7 +140,7 @@ impl<'a> RustContract<'a> {
         Ok(())
     }
 
-    pub fn enum_declaration(&self, expected: &str, unconstrained_fields: &[&str]) -> Result<(), RustContractEnumDeclarationError> {
+    pub fn enum_declaration(&self, expected: &str, unconstrained_variants: &[&str]) -> Result<(), RustContractEnumDeclarationError> {
         use RustContractEnumDeclarationError::*;
         let expected = handle!(parse_declaration(expected, self.krate.edition(&self.workspace.db)), ParseDeclarationFailed);
         let actual = handle!(self.item(&expected), ItemFailed, expected: expected.syntax().to_string());
@@ -150,7 +150,7 @@ impl<'a> RustContract<'a> {
                 expected: expected.syntax().to_string(),
             });
         };
-        handle!(compare_enum_declaration(actual, expected, unconstrained_fields), CompareEnumDeclarationFailed);
+        handle!(compare_enum_declaration(actual, expected, unconstrained_variants), CompareEnumDeclarationFailed);
         Ok(())
     }
 }

@@ -1792,6 +1792,7 @@ absolute_paths = "deny"
 arithmetic_side_effects = "deny"
 
 [workspace.dependencies]
+cargo-util-schemas = "0.14.3"
 futures = "0.3.34"
 tempfile = "3.27.0"
 sha2 = "0.11.1"
@@ -1902,6 +1903,7 @@ workspace = true
 
 [dependencies]
 anyhow = { workspace = true }
+cargo-util-schemas.workspace = true
 cargo_metadata = { workspace = true }
 errgonomic.workspace = true
 ra_ap_hir = { workspace = true }

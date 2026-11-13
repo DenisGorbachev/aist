@@ -13,6 +13,9 @@ pub use compare_enum_declaration::*;
 mod compare_method;
 pub use compare_method::*;
 
+mod declaration_owner;
+pub use declaration_owner::*;
+
 mod definition_source;
 pub use definition_source::*;
 
@@ -28,17 +31,35 @@ pub use get_adt::*;
 mod get_struct;
 pub use get_struct::*;
 
+mod ignore_declaration_attribute;
+pub use ignore_declaration_attribute::*;
+
 mod ignore_declaration_element;
 pub use ignore_declaration_element::*;
 
+mod ignore_declaration_trailing_comma;
+pub use ignore_declaration_trailing_comma::*;
+
 mod ignore_method_element;
 pub use ignore_method_element::*;
+
+mod ignore_variant_fields;
+pub use ignore_variant_fields::*;
+
+mod inherits_workspace_dependency;
+pub use inherits_workspace_dependency::*;
+
+mod is_trailing_comma;
+pub use is_trailing_comma::*;
 
 mod item_name;
 pub use item_name::*;
 
 mod iter_eq_by;
 pub use iter_eq_by::*;
+
+mod package_dependency_tables;
+pub use package_dependency_tables::*;
 
 mod parse_declaration;
 pub use parse_declaration::*;
@@ -52,11 +73,11 @@ pub use parse_path::*;
 mod read_toml;
 pub use read_toml::*;
 
+mod resolve_trait;
+pub use resolve_trait::*;
+
 mod syntax_equal;
 pub use syntax_equal::*;
 
 mod token_trees_equal;
 pub use token_trees_equal::*;
-
-mod resolve_trait;
-pub use resolve_trait::*;

@@ -1,9 +1,9 @@
 use crate::{CheckPackageDependenciesError, ReadTomlError, check_package_dependencies, read_toml};
 use cargo_metadata::{Error as MetadataError, MetadataCommand};
+use cargo_util_schemas::manifest::TomlManifest;
 use errgonomic::{ErrVec, handle, handle_bool, handle_iter};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
-use toml::Value;
 
 pub fn check_workspace_dependencies(root: &Path, required: &[&str]) -> Result<(), CheckWorkspaceDependenciesError> {
     use CheckWorkspaceDependenciesError::*;
@@ -12,11 +12,11 @@ pub fn check_workspace_dependencies(root: &Path, required: &[&str]) -> Result<()
         .workspace_root
         .join("Cargo.toml")
         .into_std_path_buf();
-    let manifest = handle!(read_toml(&path), ReadTomlFailed);
+    let manifest: TomlManifest = handle!(read_toml(&path), ReadTomlFailed);
     let dependencies = manifest
-        .get("workspace")
-        .and_then(|workspace| workspace.get("dependencies"))
-        .and_then(Value::as_table);
+        .workspace
+        .as_ref()
+        .and_then(|workspace| workspace.dependencies.as_ref());
     let missing: Vec<_> = required
         .iter()
         .filter(|name| !dependencies.is_some_and(|dependencies| dependencies.contains_key(**name)))

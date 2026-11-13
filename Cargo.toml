@@ -50,6 +50,7 @@ absolute_paths = "deny"
 arithmetic_side_effects = "deny"
 
 [workspace.dependencies]
+cargo-util-schemas = "0.14.3"
 futures = "0.3.34"
 tempfile = "3.27.0"
 sha2 = "0.11.1"

@@ -1,11 +1,12 @@
 use errgonomic::handle;
+use serde::de::DeserializeOwned;
 use std::fs::read_to_string;
 use std::io;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
-use toml::{Value, de, from_str};
+use toml::{de, from_str};
 
-pub fn read_toml(path: &Path) -> Result<Value, ReadTomlError> {
+pub fn read_toml<T: DeserializeOwned>(path: &Path) -> Result<T, ReadTomlError> {
     use ReadTomlError::*;
     let text = handle!(read_to_string(path), ReadToStringFailed, path: path.to_path_buf());
     Ok(handle!(from_str(&text), FromStrFailed, path: path.to_path_buf(), text))
