@@ -1805,6 +1805,8 @@ clap = { version = "4.6.6", features = ["derive", "env"] }
 errgonomic = { git = "https://github.com/DenisGorbachev/errgonomic" }
 toml = "1.1.8"
 ra_ap_hir = "0.0.358"
+ra_ap_hir_def = "0.0.358"
+ra_ap_hir_expand = "0.0.358"
 ra_ap_ide_db = "0.0.358"
 ra_ap_load-cargo = "0.0.358"
 ra_ap_proc_macro_api = "0.0.358"
@@ -1908,6 +1910,8 @@ cargo-util-schemas.workspace = true
 cargo_metadata = { workspace = true }
 errgonomic.workspace = true
 ra_ap_hir = { workspace = true }
+ra_ap_hir_def.workspace = true
+ra_ap_hir_expand.workspace = true
 ra_ap_ide_db = { workspace = true }
 ra_ap_load-cargo = { workspace = true }
 ra_ap_proc_macro_api = { workspace = true }

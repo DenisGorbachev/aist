@@ -1,3 +1,6 @@
+mod active_derive_attributes;
+pub use active_derive_attributes::*;
+
 mod check_package_dependencies;
 pub use check_package_dependencies::*;
 
@@ -64,14 +67,17 @@ pub use package_dependency_tables::*;
 mod parse_declaration;
 pub use parse_declaration::*;
 
-mod parse_derive_attribute;
-pub use parse_derive_attribute::*;
-
 mod parse_path;
 pub use parse_path::*;
 
 mod read_toml;
 pub use read_toml::*;
+
+mod resolve_derive_attribute;
+pub use resolve_derive_attribute::*;
+
+mod resolve_derive_path;
+pub use resolve_derive_path::*;
 
 mod resolve_trait;
 pub use resolve_trait::*;

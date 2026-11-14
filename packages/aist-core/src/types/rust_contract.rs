@@ -1,9 +1,9 @@
-use crate::{CompareDeclarationError, CompareEnumDeclarationError, CompareMethodError, GetAdtError, ParseDeclarationError, ParseDeriveAttributeError, ParsePathError, ResolveTraitError, WorkspaceInfo, WorkspaceInfoFindCrateError, compare_declaration, compare_enum_declaration, compare_method, definition_source, get_adt, item_name, parse_declaration, parse_derive_attribute, parse_path, resolve_trait, syntax_equal};
+use crate::{CompareDeclarationError, CompareEnumDeclarationError, CompareMethodError, GetAdtError, ParseDeclarationError, ResolveDeriveAttributeError, ResolveDerivePathError, ResolveTraitError, WorkspaceInfo, WorkspaceInfoFindCrateError, active_derive_attributes, compare_declaration, compare_enum_declaration, compare_method, definition_source, get_adt, item_name, parse_declaration, resolve_derive_attribute, resolve_derive_path, resolve_trait};
 use errgonomic::{ErrVec, handle, handle_bool, handle_iter, handle_opt};
-use ra_ap_hir::{Adt, AssocItem, Crate, HasSource, Impl, ModuleDef, attach_db};
+use ra_ap_hir::{Adt, AssocItem, Crate, HasSource, Impl, ModuleDef, Semantics, attach_db};
 use ra_ap_syntax::{
     AstNode,
-    ast::{self, HasName, Item},
+    ast::{HasName, Item},
 };
 use thiserror::Error;
 
@@ -58,21 +58,18 @@ impl<'a> RustContract<'a> {
 
     pub fn require_derive(&self, owner: &str, path: &str) -> Result<(), RustContractRequireDeriveError> {
         use RustContractRequireDeriveError::*;
-        let edition = self.krate.edition(&self.workspace.db);
-        let required = handle!(parse_path(path, edition), ParsePathFailed, owner: owner.to_owned());
-        let definition = handle!(self.definition(owner, |item| matches!(item, ModuleDef::Adt(_))), DefinitionFailed, path: path.to_owned());
-        let item = handle_opt!(definition_source(definition, &self.workspace.db), SourceNotFound, owner: owner.to_owned(), path: path.to_owned());
-        let attributes = item
-            .syntax()
-            .children()
-            .filter_map(ast::Attr::cast)
-            .filter(|attr| attr.simple_name().is_some_and(|name| name == "derive"));
-        let paths = handle_iter!(attributes.map(|attr| parse_derive_attribute(&attr, edition)), ParseDeriveAttributeFailed, owner: owner.to_owned(), path: path.to_owned());
-        let found = paths
-            .iter()
+        let db = &self.workspace.db;
+        let adt = handle!(get_adt(owner, &self.krate, db), GetAdtFailed, path: path.to_owned());
+        let semantics = Semantics::new(db);
+        let item = handle_opt!(semantics.source(adt), SourceNotFound, owner: owner.to_owned(), path: path.to_owned());
+        let required = handle!(resolve_derive_path(adt.module(db), db, path, self.krate.edition(db)), ResolveDerivePathFailed, owner: owner.to_owned());
+        let attributes = active_derive_attributes(&item.value, &self.krate, &semantics);
+        let macros = handle_iter!(attributes.iter().map(|attribute| resolve_derive_attribute(&semantics, attribute)), ResolveDeriveAttributeFailed, owner: owner.to_owned(), path: path.to_owned());
+        let found = macros
+            .into_iter()
             .flatten()
-            .any(|actual| syntax_equal(actual.syntax(), required.syntax(), &|element| element.kind().is_trivia(), &|element| element.kind().is_trivia()));
-        handle_bool!(!found, DeriveNotFound, owner: owner.to_owned(), path: path.to_owned(), actual: item.syntax().to_string());
+            .any(|actual| actual == required);
+        handle_bool!(!found, DeriveNotFound, owner: owner.to_owned(), path: path.to_owned(), actual: item.value.syntax().to_string());
         Ok(())
     }
 
@@ -191,14 +188,14 @@ pub enum RustContractDeclarationError {
 
 #[derive(Error, Debug)]
 pub enum RustContractRequireDeriveError {
-    #[error("failed to parse required derive path for '{owner}'")]
-    ParsePathFailed { source: ParsePathError, owner: String },
     #[error("failed to locate type requiring derive '{path}'")]
-    DefinitionFailed { source: RustContractDefinitionError, path: String },
+    GetAdtFailed { source: GetAdtError, path: String },
     #[error("source for '{owner}' not found")]
     SourceNotFound { owner: String, path: String },
-    #[error("failed to read derives for '{owner}'")]
-    ParseDeriveAttributeFailed { source: ErrVec<ParseDeriveAttributeError>, owner: String, path: String },
+    #[error("failed to resolve required derive for '{owner}'")]
+    ResolveDerivePathFailed { source: ResolveDerivePathError, owner: String },
+    #[error("failed to resolve derives for '{owner}'")]
+    ResolveDeriveAttributeFailed { source: ErrVec<ResolveDeriveAttributeError>, owner: String, path: String },
     #[error("'{owner}' must derive '{path}'")]
     DeriveNotFound { owner: String, path: String, actual: String },
 }

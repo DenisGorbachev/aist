@@ -1,29 +1,23 @@
-use crate::{ParseDeclarationError, parse_declaration};
-use errgonomic::{handle, handle_opt};
+use errgonomic::{handle_bool, handle_opt};
 use ra_ap_syntax::{
-    Edition,
-    ast::{Item, Path, Type},
+    AstNode, Edition, SyntaxError,
+    ast::{Expr, Path, PathExpr},
 };
 use thiserror::Error;
 
 pub fn parse_path(text: &str, edition: Edition) -> Result<Path, ParsePathError> {
     use ParsePathError::*;
-    let source = format!("type AistPath = {text};");
-    let item = handle!(parse_declaration(&source, edition), ParseDeclarationFailed, text: text.to_owned());
-    let path = match item {
-        Item::TypeAlias(item) => match item.ty() {
-            Some(Type::PathType(typ)) => typ.path(),
-            _ => None,
-        },
-        _ => None,
-    };
+    let parsed = Expr::parse(text, edition);
+    let errors = parsed.errors();
+    handle_bool!(!errors.is_empty(), SyntaxInvalid, text: text.to_owned(), errors);
+    let path = PathExpr::cast(parsed.syntax_node()).and_then(|expr| expr.path());
     Ok(handle_opt!(path, PathInvalid, text: text.to_owned()))
 }
 
 #[derive(Error, Debug)]
 pub enum ParsePathError {
-    #[error("failed to parse Rust path '{text}'")]
-    ParseDeclarationFailed { source: ParseDeclarationError, text: String },
-    #[error("expected a Rust path, found '{text}'")]
+    #[error("invalid Rust path: {errors:?}")]
+    SyntaxInvalid { text: String, errors: Vec<SyntaxError> },
+    #[error("expected a Rust path, found '{text}'", text = text.escape_debug())]
     PathInvalid { text: String },
 }
