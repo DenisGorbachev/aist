@@ -14,6 +14,32 @@ pub fn get_adt(name: &str, krate: &Crate, db: &RootDatabase) -> Result<Adt, GetA
     Ok(adt)
 }
 
+macro_rules! define_get_adt {
+    ($function:ident, $kind:ident, $error:ident, $invalid:ident, $message:literal) => {
+        pub fn $function(name: &str, krate: &ra_ap_hir::Crate, db: &ra_ap_ide_db::RootDatabase) -> Result<ra_ap_hir::$kind, $error> {
+            use $error::*;
+            use ra_ap_hir::Adt::$kind;
+            let adt = errgonomic::handle!($crate::get_adt(name, krate, db), GetAdtFailed, name: name.to_owned());
+            match adt {
+                $kind(item) => Ok(item),
+                _ => Err($invalid {
+                    name: name.to_owned(),
+                }),
+            }
+        }
+
+        #[derive(serde::Serialize, thiserror::Error, Debug)]
+        pub enum $error {
+            #[error("failed to get ADT '{name}'")]
+            GetAdtFailed { source: $crate::GetAdtError, name: String },
+            #[error($message)]
+            $invalid { name: String },
+        }
+    };
+}
+
+pub(crate) use define_get_adt;
+
 #[derive(Serialize, Error, Debug)]
 pub enum GetAdtError {
     #[error("ADT '{name}' was not found")]

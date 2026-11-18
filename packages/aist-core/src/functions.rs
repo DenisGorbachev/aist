@@ -31,6 +31,9 @@ pub use find_crate::*;
 mod get_adt;
 pub use get_adt::*;
 
+mod get_enum;
+pub use get_enum::*;
+
 mod get_struct;
 pub use get_struct::*;
 
