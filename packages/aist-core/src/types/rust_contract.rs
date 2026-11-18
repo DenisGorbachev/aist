@@ -1,4 +1,4 @@
-use crate::{CompareDeclarationError, CompareEnumDeclarationError, CompareMethodError, GetAdtError, ParseDeclarationError, ResolveDeriveAttributeError, ResolveDerivePathError, ResolveTraitError, WorkspaceInfo, WorkspaceInfoFindCrateError, active_derive_attributes, compare_declaration, compare_enum_declaration, compare_method, definition_source, get_adt, item_name, parse_declaration, resolve_derive_attribute, resolve_derive_path, resolve_trait};
+use crate::{CompareDeclarationError, CompareEnumDeclarationError, CompareMethodError, GetAdtError, ParseDeclarationError, ResolveDeriveAttributeError, ResolveDerivePathError, ResolveTraitError, TraitOrigin, TraitOriginResolveError, WorkspaceInfo, WorkspaceInfoFindCrateError, active_derive_attributes, compare_declaration, compare_enum_declaration, compare_method, definition_source, get_adt, has_trait_impl, item_name, parse_declaration, resolve_derive_attribute, resolve_derive_path, resolve_trait};
 use errgonomic::{ErrVec, handle, handle_bool, handle_iter, handle_opt};
 use ra_ap_hir::{Adt, AssocItem, Crate, HasSource, Impl, ModuleDef, Semantics, attach_db};
 use ra_ap_syntax::{
@@ -53,6 +53,15 @@ impl<'a> RustContract<'a> {
         let expected = handle!(parse_declaration(expected, self.krate.edition(&self.workspace.db)), ParseDeclarationFailed);
         let actual = handle!(self.item(&expected), ItemFailed, expected: expected.syntax().to_string());
         handle!(compare_declaration(&actual, &expected), CompareDeclarationFailed);
+        Ok(())
+    }
+
+    pub fn require_trait(&self, owner: &str, origin: TraitOrigin<'_>, path: &str) -> Result<(), RustContractRequireTraitError> {
+        use RustContractRequireTraitError::*;
+        let db = &self.workspace.db;
+        let adt = handle!(get_adt(owner, &self.krate, db), GetAdtFailed, path: path.to_owned());
+        let required = handle!(origin.resolve(self, path), ResolveFailed, owner: owner.to_owned(), path: path.to_owned());
+        handle_bool!(!has_trait_impl(adt, required, db), ImplementationNotFound, owner: owner.to_owned(), origin: origin.to_string(), path: path.to_owned());
         Ok(())
     }
 
@@ -184,6 +193,16 @@ pub enum RustContractDeclarationError {
     ItemFailed { source: RustContractItemError, expected: String },
     #[error("declaration check failed")]
     CompareDeclarationFailed { source: CompareDeclarationError },
+}
+
+#[derive(Error, Debug)]
+pub enum RustContractRequireTraitError {
+    #[error("failed to find type requiring trait '{path}'")]
+    GetAdtFailed { source: GetAdtError, path: String },
+    #[error("failed to resolve required trait '{path}' for '{owner}'")]
+    ResolveFailed { source: TraitOriginResolveError, owner: String, path: String },
+    #[error("no implementation of '{path}' from {origin} found for '{owner}'")]
+    ImplementationNotFound { owner: String, origin: String, path: String },
 }
 
 #[derive(Error, Debug)]

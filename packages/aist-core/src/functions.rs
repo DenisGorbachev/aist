@@ -28,6 +28,9 @@ pub use filter_adt::*;
 mod find_crate;
 pub use find_crate::*;
 
+mod find_crates_io_crate;
+pub use find_crates_io_crate::*;
+
 mod get_adt;
 pub use get_adt::*;
 
@@ -36,6 +39,9 @@ pub use get_enum::*;
 
 mod get_struct;
 pub use get_struct::*;
+
+mod has_trait_impl;
+pub use has_trait_impl::*;
 
 mod ignore_declaration_attribute;
 pub use ignore_declaration_attribute::*;
@@ -72,6 +78,9 @@ pub use parse_declaration::*;
 
 mod parse_path;
 pub use parse_path::*;
+
+mod read_cargo_metadata;
+pub use read_cargo_metadata::*;
 
 mod read_toml;
 pub use read_toml::*;

@@ -4,5 +4,8 @@ pub use comparison_span::*;
 mod rust_contract;
 pub use rust_contract::*;
 
+mod trait_origin;
+pub use trait_origin::*;
+
 mod workspace_info;
 pub use workspace_info::*;

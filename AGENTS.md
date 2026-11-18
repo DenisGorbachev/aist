@@ -1918,6 +1918,7 @@ ra_ap_syntax-bridge = { workspace = true }
 ra_ap_tt = { workspace = true }
 ra_ap_vfs = { workspace = true }
 serde = { workspace = true }
+tempfile.workspace = true
 thiserror.workspace = true
 toml = { workspace = true }
 ```

@@ -57,6 +57,7 @@ dependencies = [
  "ra_ap_tt",
  "ra_ap_vfs",
  "serde",
+ "tempfile",
  "thiserror",
  "toml 1.1.8+spec-1.1.0",
 ]
