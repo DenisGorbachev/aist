@@ -1788,6 +1788,8 @@ redundant_field_names = "allow"
 absolute_paths = "deny"
 arithmetic_side_effects = "deny"
 collapsible_else_if = "deny"
+manual_let_else = "deny"
+needless_continue = "deny"
 too_many_lines = "deny"
 
 [workspace.dependencies]
