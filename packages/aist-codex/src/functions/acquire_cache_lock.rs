@@ -1,4 +1,4 @@
-use errgonomic::handle;
+use errgonomic::{handle, map_err};
 use std::fs::{File, TryLockError};
 use std::io;
 use std::path::{Path, PathBuf};
@@ -15,18 +15,14 @@ pub async fn acquire_cache_lock(path: &Path, duration: Duration) -> Result<File,
     let wait = async {
         loop {
             match file.try_lock() {
-                Ok(()) => return Ok(file),
+                Ok(()) => break Ok(file),
                 Err(TryLockError::WouldBlock) => sleep(Duration::from_millis(50)).await,
-                Err(TryLockError::Error(source)) => {
-                    return Err(TryLockFailed {
-                        source,
-                        path: path.to_path_buf(),
-                    });
-                }
+                Err(TryLockError::Error(source)) => break Err(source),
             }
         }
     };
-    handle!(timeout(duration, wait).await, TimeoutFailed, path: path.to_path_buf())
+    let result = handle!(timeout(duration, wait).await, TimeoutFailed, path: path.to_path_buf());
+    map_err!(result, TryLockFailed, path: path.to_path_buf())
 }
 
 #[derive(Error, Debug)]
